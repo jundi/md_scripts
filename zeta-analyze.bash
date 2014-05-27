@@ -1,34 +1,28 @@
 #!/bin/bash
 
-##############
-# trajectory #
-##############
-traj="traj.xtc"
+####################A######################
+# Index file should contain these groups: 
+# * System
+# * CO (Cholesteryl oleate)
+# * POPC
+# * Protein
+# * NA
+# * CL
+# * Water
+# * Lipids (All lipids)
+# * HDL (Lipids and Proteins)
+# * POPC_P (POPC Phosphate P-)
+# * POPC_N (POPC Choline N+)
+# * POPC_Protein (POPC and Protein)
+##########################################
+
+############
+# defaults #
+############
+#traj="traj.xtc"
 structure="topol.tpr"
-begin=0
-
-
-
-####################
-# index.ndx groups #
-####################
 index="index.ndx"
-declare -A group
-group["System"]=0
-group["CO"]=13
-group["POPC"]=14
-group["protein"]=1
-group["NA"]=15
-group["CL"]=16
-group["Water"]=22
-group["Lipids"]=26
-group["HDL"]=27
-group["POPC_P"]=28
-group["POPC_N"]=29
-group["POPC_Protein"]=30
-
-
-
+begin=0
 
 ####################
 # input parameters #
@@ -68,7 +62,11 @@ done
 # main #
 ########
 main() {
-  mindist
+  #rdf
+  #rms
+  #potential
+  #sorient
+  sas
 }
 
 
@@ -82,8 +80,8 @@ rdf() {
   mkdir -p $workdir
   cd $workdir
 
-  ref_group="${group["lipids"]}"
-  groups="${group["CO"]} ${group["POPC"]} ${group["Protein"]} ${group["Na"]} ${group["Cl"]} ${group["water"]} ${group["P"]} ${group["N"]}"
+  ref_group="Lipids"
+  groups="CO POPC Protein NA CL Water POPC_P POPC_N"
 
   echo "$ref_group $groups" | g_rdf -f ../$traj -n ../$index -s ../$structure  -b $begin -rdf atom -com -ng 7
 
@@ -101,9 +99,8 @@ rms() {
   mkdir -p $workdir
   cd $workdir
 
-  # Reference group
-  ref_group="${group["lipids"]}"
-  groups="${group["CO"]} ${group["POPC"]} ${group["Protein"]} ${group["lipids"]} ${group["HDL"]} "
+  ref_group="Lipids"
+  groups="CO POPC Protein Lipids HDL"
 
   echo "$ref_group $groups" | g_rms -f ../$traj -n ../$index -s ../$structure -ng 5 -what rmsd 
 
@@ -130,7 +127,7 @@ order() {
   /home/mikkolah/koodi/bash/g_select_tails.sh "$first_atom" "$last_atom" "$resname" "../$structure"
 
   # Reference group
-  ref_group="${group["lipids"]}"
+  ref_group="Lipids"
 
   echo "$ref_group" | g_order -f ../$traj -nr ../$index -s ../$structure  -b $begin -n $resname-$first_atom-$last_atom.ndx -radial -permolecule -o $resname-$first_atom-$last_atom.xvg
 
@@ -152,15 +149,14 @@ potential() {
   source ~/.local/gromacs-fftpack/bin/GMXRC.bash
   binsize=0.05
   # Reference group
-  ref_group="${group["lipids"]}"
-  group_names=( CO POPC protein Na Cl water system N P )
+  ref_group="Lipids"
+  groups=(CO POPC Protein NA CL Water System POPC_N POPC_P)
 
-  for g in "${group_names[@]}"
+  for group in ${groups[@]}
   do
-    mkdir $g
-    cd $g
-    calc_group="${group["$g"]}"
-    select="com of group $ref_group pbc; group $calc_group"
+    mkdir $group
+    cd $group
+    select="com of group $ref_group pbc; group $group"
     g_H_potential -f ../../$traj -n ../../$index -s ../../$structure  -b $begin -geo Radial -bin_size $binsize -select "$select"
     cd ..
   done
@@ -179,9 +175,9 @@ sorient() {
   cd $workdir
 
   # Reference group
-  ref_group="${group["lipids"]}"
+  ref_group="Lipids"
   # water group
-  calc_group="${group["water"]}"
+  group="Water"
 
   # Calculate sorient for 0.5nm slices
   rstep=0.5
@@ -195,7 +191,7 @@ sorient() {
     mkdir "$rmin-$rmax"
     cd "$rmin-$rmax"
 
-    echo "$ref_group $calc_group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax
+    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax
     cd ..
 
     #next slice:
@@ -221,12 +217,32 @@ mindist() {
   cd $workdir
 
   dist=0.25
-  ref_group_names=( CO POPC protein lipids HDL POPC_protein )
-  groups="${group["Na"]} ${group["Cl"]} ${group["water"]}"
+  ref_groups=(CO POPC Protein Lipids HDL POPC_Protein)
+  groups="NA CL Water"
 
-  for rg in "${ref_group_names[@]}"; do
-    ref_group="${group["$rg"]}"
-    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -b $begin -group -ng 3 -od "$rg-mindist.xvg" -on "$rg-numcount.xvg" -d $dist
+  for ref_group in ${ref_groups[@]}; do
+    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -od "$rg-mindist.xvg" -on "$rg-numcount.xvg" -d $dist
+  done
+
+  cd ..
+}
+
+
+
+########
+# SASA #
+########
+sas() {
+
+  workdir=g_sas
+  mkdir -p $workdir
+  cd $workdir
+
+  ref_group="HDL"
+  groups=(CO POPC Protein Lipids HDL)
+
+  for group in  ${groups[@]}; do
+    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure 
   done
 
   cd ..
