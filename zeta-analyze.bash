@@ -50,8 +50,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      echo "rtfm"
-      exit 1
+      analys="$1"
   esac
   shift       
 done
@@ -62,11 +61,14 @@ done
 # main #
 ########
 main() {
+  # run one of the functions:
   #rdf
   #rms
   #potential
   #sorient
-  sas
+  #sas
+  #mindist
+  $analys
 }
 
 
@@ -219,13 +221,15 @@ mindist() {
   dist=0.25
   ref_groups=(CO POPC Protein Lipids HDL POPC_Protein)
   groups="NA CL Water"
+  dt=1000 # 1ns
 
   for ref_group in ${ref_groups[@]}; do
-    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -od "$rg-mindist.xvg" -on "$rg-numcount.xvg" -d $dist
+    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist
   done
 
   cd ..
 }
+
 
 
 
@@ -234,6 +238,7 @@ mindist() {
 ########
 sas() {
 
+  echo "jee"
   workdir=g_sas
   mkdir -p $workdir
   cd $workdir
@@ -242,7 +247,7 @@ sas() {
   groups=(CO POPC Protein Lipids HDL)
 
   for group in  ${groups[@]}; do
-    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure 
+    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb
   done
 
   cd ..
