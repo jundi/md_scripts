@@ -148,7 +148,6 @@ potential() {
   cd $workdir
 
   # I have a different version of GROMACS for using g_H_potential
-  source ~/.local/gromacs-fftpack/bin/GMXRC.bash
   binsize=0.05
   # Reference group
   ref_group="Lipids"
