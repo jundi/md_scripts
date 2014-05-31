@@ -23,6 +23,7 @@
 structure="topol.tpr"
 index="index.ndx"
 begin=0
+tasks=() # empty array
 
 ####################
 # input parameters #
@@ -50,7 +51,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *)
-      analys="$1"
+      tasks+=("$1")
   esac
   shift       
 done
@@ -68,7 +69,11 @@ main() {
   #sorient
   #sas
   #mindist
-  $analys
+  for task in ${tasks[@]}
+  do
+    echo -e "\nCalculating $task\n"
+    $task
+  done
 }
 
 
@@ -237,13 +242,13 @@ mindist() {
 ########
 sas() {
 
-  echo "jee"
   workdir=g_sas
   mkdir -p $workdir
   cd $workdir
 
   ref_group="HDL"
   groups=(CO POPC Protein Lipids HDL)
+  dt=1000 # 1ns
 
   for group in  ${groups[@]}; do
     echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb
