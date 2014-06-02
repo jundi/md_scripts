@@ -67,6 +67,7 @@ main() {
   #rms
   #potential
   #sorient
+  #order
   #sas
   #mindist
   for task in ${tasks[@]}
@@ -251,7 +252,7 @@ sas() {
   dt=1000 # 1ns
 
   for group in  ${groups[@]}; do
-    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb
+    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt
   done
 
   cd ..
