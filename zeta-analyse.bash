@@ -1,6 +1,25 @@
 #!/bin/bash
 
 ####################A######################
+#
+# Input:
+# -n index.ndx
+# -s topol.tpr
+# -f traj.xtc
+# 
+# analysis to be done
+# * rdf
+# * sorient
+# * order
+# * rms
+# * potential
+# * mindist (very slow)
+# * sas (very slow)
+# 
+##########################################
+
+####################A######################
+#
 # Index file should contain these groups: 
 # * System
 # * CO (Cholesteryl oleate)
@@ -14,12 +33,14 @@
 # * POPC_P (POPC Phosphate P-)
 # * POPC_N (POPC Choline N+)
 # * POPC_Protein (POPC and Protein)
+#
 ##########################################
+
 
 ############
 # defaults #
 ############
-#traj="traj.xtc"
+traj="traj.xtc"
 structure="topol.tpr"
 index="index.ndx"
 begin=0
@@ -29,7 +50,7 @@ tasks=() # empty array
 # input parameters #
 ####################
 if [[ $# -lt 1 ]]; then
-  echo "not enough input parameteres"
+  echo "Not enough input parameteres."
   exit 1
 fi
 while [[ $# -gt 0 ]]; do    
@@ -50,8 +71,13 @@ while [[ $# -gt 0 ]]; do
       begin="$2"
       shift
       ;;
-    *)
+    rdf|sorient|order|rms|potential|mindist|sas)
       tasks+=("$1")
+      ;;
+    *)
+      echo "RTFM"
+      exit 2
+      ;;
   esac
   shift       
 done
@@ -62,19 +88,16 @@ done
 # main #
 ########
 main() {
-  # run one of the functions:
-  #rdf
-  #rms
-  #potential
-  #sorient
-  #order
-  #sas
-  #mindist
+
   for task in ${tasks[@]}
   do
-    echo -e "\nCalculating $task\n"
-    $task
+    echo -e "Calculating $task..."
+    $task  >"$task"".log" 2> "$task""2.log" && echo -e "$task done!" &
   done
+
+  wait
+  echo -e "All tasks completed."
+
 }
 
 
@@ -90,8 +113,9 @@ rdf() {
 
   ref_group="Lipids"
   groups="CO POPC Protein NA CL Water POPC_P POPC_N"
+  ng=8
 
-  echo "$ref_group $groups" | g_rdf -f ../$traj -n ../$index -s ../$structure  -b $begin -rdf atom -com -ng 7
+  echo "$ref_group $groups" | g_rdf -f ../$traj -n ../$index -s ../$structure  -b $begin -rdf atom -com -ng 8
 
   cd ..
 }
@@ -214,9 +238,9 @@ sorient() {
 
 
 
-###########
-# CONTATS #
-###########
+############
+# CONTACTS #
+############
 mindist() {
 
   workdir=g_mindist
