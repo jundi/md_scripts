@@ -1,12 +1,38 @@
+#!/usr/bin/python
 import sys
+import os
+import argparse
 
-# input/output files
+# default input/output files
 #--------------------------
-oldmapfile = 'popc.charmm36.map'
-newmapfile = 'popc.opls.map'
-itpfile = 'popc-opls.itp'
-transfile = 'popc-charm2opls.trans'
+oldmapfile = 'chol.charmm36.map'
+newmapfile = 'chol.opls.map'
+itpfile = 'chol-opls.itp'
+transfile = 'chol-charmm2opls.trans'
 
+
+# commandline parser
+#--------------------------------
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", help='old map file')
+parser.add_argument("-p", help='new topology file')
+parser.add_argument("-o", help='output file')
+parser.add_argument("-t", help='translation file')
+args = parser.parse_args()
+
+if args.i:
+  oldmapfile = args.i
+if args.p:
+  itpfile = args.p
+if args.o:
+  newmapfile = args.o
+if args.t:
+  transfile = args.t
+
+print(newmapfile)
+if os.path.exists(newmapfile):
+  print(newmapfile + ' already exists.')
+  exit(0)
 
 # load translation
 #--------------------------
@@ -112,8 +138,12 @@ while True:
 num = 1
 for atom in order:
    
-  oldatom = newtoold[atom]
-  beadstr = ' '.join(beads[oldatom])
+  if atom in newtoold:
+    oldatom = newtoold[atom]
+    beadstr = ' '.join(beads[oldatom])
+  else:
+    beadstr = ''
+
   atomstr = "{0:5}{1:6}".format(str(num), atom)
   newline = atomstr+ '   ' + beadstr + '\n'
   newmapstream.write(newline)
