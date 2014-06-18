@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import argparse
 import os
 import numpy
@@ -61,7 +63,7 @@ if do_g_dist > 0:
 # find frames
 #--------------------------------
 frame_list = ([])
-dists = numpy.loadtxt('dist.xvg',comments='@',skiprows=8,usecols=(0,4))
+dists = numpy.loadtxt('dist.xvg',comments='@',skiprows=8,usecols=(0,3))
 
 # Maximum distance
 maxdist = dists[:,1].max()
