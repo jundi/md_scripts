@@ -15,7 +15,6 @@ struct = "../pull/run/topol.tpr"
 top = "../topology/topol.top"
 mdp = "umbrella.mdp"
 window = 0.1
-use_default_struct = 1
 do_g_dist = 1
 
 
@@ -26,7 +25,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-s", help=traj)
 parser.add_argument("-f", help=struct)
 parser.add_argument("-n", help=index)
-parser.add_argument("--skip_g_dist", help='Dont calculate distances.')
+parser.add_argument("-p", help=top)
+parser.add_argument("--skip_g_dist", help='Dont calculate distances.', action='store_true')
 args = parser.parse_args()
 
 if args.s:
@@ -35,6 +35,8 @@ if args.f:
   traj = args.f
 if args.n:
   index = args.n
+if args.p:
+  top = args.p
 if args.skip_g_dist:
   do_g_dist = 0
 
@@ -63,7 +65,7 @@ if do_g_dist > 0:
 # find frames
 #--------------------------------
 frame_list = ([])
-dists = numpy.loadtxt('dist.xvg',comments='@',skiprows=8,usecols=(0,3))
+dists = numpy.loadtxt('dist.xvg',comments='@',skiprows=8,usecols=(0,4))
 
 # Maximum distance
 maxdist = dists[:,1].max()
@@ -84,16 +86,18 @@ while itr < maxdist:
 for itr in frame_list:
 
   time = int(round(itr[0]))
-  dist = round(itr[1],2)
+  dist = round(itr[1],4)
   foldername = str(dist)
   filename = 'confin.gro'
+  gromplog = 'grompp.log'
 
   # backup old directory 
   backup_num = 0
   backup_folder = foldername
   while os.path.exists(backup_folder):
-    b = b + 1
-    foldername_b = '#' + foldername + '.' + b + '#'
+    print(backup_folder + ' exists')
+    backup_num = backup_num + 1
+    backup_folder = '#' + foldername + '.' + str(backup_num) + '#'
   
   if backup_num > 0:
     shutil.move(foldername, backup_folder)
@@ -121,7 +125,7 @@ for itr in frame_list:
       + ' -p ' + top
       + ' -f ' + mdp
       + ' -n ' + index
-      + ' -maxwarn 1'
+      + ' 2> grompp.log'
       )
   os.system(grompp_command)
 
