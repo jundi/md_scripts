@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import numpy
 import argparse
 import matplotlib.pyplot as plt
@@ -39,8 +41,11 @@ def mean_force(pullf_file_name):
 # Reads list of z-coordinates and corresponding pullf.xvg -files.
 # Returns z-zoordinates and mean forces.
 def get_force(list_file_name):
-    z=[]
-    f=[]
+
+    z=[] # init z-coord vector
+    f=[] # init force vector
+
+    # read list
     list_file=open(list_file_name, 'r')
     for line in list_file:
         pullf_file_name=line.split()[1]
