@@ -9,11 +9,17 @@ from scipy import integrate
 # parse arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", help="list of windows and pullf.xvg -files")
+parser.add_argument("-b", help="first time step to be used")
 args = parser.parse_args()
 if args.f:
     files = args.f
 else:
     exit()
+if args.b:
+    first_tstep = float(args.b)
+else:
+    first_tstep = 0
+
 
 
 # Reads one pullf.xvg -file and calculates mean force.
@@ -26,16 +32,27 @@ def mean_force(pullf_file_name):
     
     # Read file
     for line in pullf_file:
-        # Skip comment/header lines
-        if not (line.startswith('#') or line.startswith('@')):
-            # Add force to array
-            force=line.split()[1]
-            forces=numpy.append(forces,float(force))
+        # Skip comment/header lines 
+        if (line.startswith('#') or  line.startswith('@')):
+            continue
+
+	# Add force to array
+        timestep=float(line.split()[0])
+        if (timestep >= first_tstep):
+            force=float(line.split()[1])
+            forces=numpy.append(forces,force)
     
     # Close file
     pullf_file.close()
+     
+    # Calculate mean force
+    forces_mean=forces.mean()
+
+    # Print something...
+    print pullf_file_name + ' ' + 'time: ' + str(timestep) + ' ps, ' + str(forces.size) + ' frames, f=' + str(forces_mean)
+
     # Return mean force
-    return forces.mean()
+    return forces_mean
 
 
 # Reads list of z-coordinates and corresponding pullf.xvg -files.
@@ -65,7 +82,7 @@ def interp_force(zp,fp):
 
 # Integrate mean force
 def integ_force(z,f):
-    deltaG=integrate.cumtrapz(z,f,initial=0)
+    deltaG=integrate.cumtrapz(f,z,initial=0)
     return deltaG
     
     
@@ -73,21 +90,23 @@ def integ_force(z,f):
 def pmf(list_file_name):
     
     # get forces
-    zp=get_force(list_file_name)[0]
-    fp=get_force(list_file_name)[1]
+    data=get_force(list_file_name)
+    zp=data[0]
+    fp=data[1]
     
     # mirror z-axis to start integration from bulk water
-    z=zp[::-1]
-    f=fp[::-1]
-    z=numpy.multiply(zp, -1)
-    
+    z=numpy.multiply(zp[::-1], -1)
+    f=numpy.multiply(fp[::-1], -1)
+
     # integrate
     deltaG=integ_force(z,f)
     
+
     # plot
     plt.plot(z, f, 'ro', z, deltaG, 'b-')
     plt.show()
 
 
 # run main function
-pmf(files)
+if __name__ == "__main__":
+  pmf(files)
