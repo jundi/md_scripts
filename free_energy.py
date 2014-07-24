@@ -3,7 +3,7 @@
 import numpy
 import argparse
 import matplotlib.pyplot as plt
-from scipy import integrate
+import scipy.integrate
 
 
 # parse arguments
@@ -22,13 +22,13 @@ else:
 
 
 
-# Reads one pullf.xvg -file and calculates mean force.
-def mean_force(pullf_file_name):
+# Reads one pullf.xvg -file.
+def read_xvg(pullf_file_name):
     
     # Open file
     pullf_file=open(pullf_file_name, 'r')
     # Init array
-    forces=numpy.array([])
+    forces=[]
     
     # Read file
     for line in pullf_file:
@@ -38,75 +38,75 @@ def mean_force(pullf_file_name):
 
 	# Add force to array
         timestep=float(line.split()[0])
-        if (timestep >= first_tstep):
-            force=float(line.split()[1])
-            forces=numpy.append(forces,force)
+        force=float(line.split()[1])
+        forces.append([timestep,force])
     
     # Close file
     pullf_file.close()
      
-    # Calculate mean force
-    forces_mean=forces.mean()
-
-    # Print something...
-    print pullf_file_name + ' ' + 'time: ' + str(timestep) + ' ps, ' + str(forces.size) + ' frames, f=' + str(forces_mean)
+    # create numpy-array
+    forces_np = numpy.array(forces)
 
     # Return mean force
-    return forces_mean
+    return forces_np
+
+
 
 
 # Reads list of z-coordinates and corresponding pullf.xvg -files.
 # Returns z-zoordinates and mean forces.
-def get_force(list_file_name):
+def get_force_data(list_file_name):
 
     z=[] # init z-coord vector
-    f=[] # init force vector
+    tf_list=[] # list of time-force functions
 
     # read list
     list_file=open(list_file_name, 'r')
     for line in list_file:
         pullf_file_name=line.split()[1]
-        f.append(mean_force(pullf_file_name))
+	pullf_data=read_xvg(pullf_file_name)
+        tf_list.append(pullf_data)
         z.append(float(line.split()[0]))
     list_file.close()
-    return [z, f]
+
+    # mirror axis
+    z = numpy.multiply(z[::-1], -1)
+    tf_list = tf_list[::-1]
+    for tf in tf_list:
+	tf[:,1] = numpy.multiply(tf[:,1], -1)
+
+    return z, tf_list
     
 
-# Interpolate forces
-def interp_force(zp,fp):
-    step=0.01
-    z=numpy.arange(min(zp), max(zp), step)
-    f=numpy.interp(z, zp, fp)
-    return [z, f]
+    
+# calculate deltaG 
+def calc_deltaG(z,tf_list,first_tstep):
+    
+    f_mean=[]
+    for tf in tf_list:
+	# skip non-equiliberated time steps
+	tf_equil = tf[ numpy.where( tf[:,0] >= first_tstep ) ]
+	# calculate mean force
+	f_mean.append(tf_equil[:,1].mean())
+    
+    # integrate f_mean as function of z
+    deltaG=scipy.integrate.cumtrapz(f_mean,z,initial=0)
+
+    return deltaG, f_mean
 
 
-# Integrate mean force
-def integ_force(z,f):
-    deltaG=integrate.cumtrapz(f,z,initial=0)
-    return deltaG
-    
-    
-# main function    
-def pmf(list_file_name):
-    
-    # get forces
-    data=get_force(list_file_name)
-    zp=data[0]
-    fp=data[1]
-    
-    # mirror z-axis to start integration from bulk water
-    z=numpy.multiply(zp[::-1], -1)
-    f=numpy.multiply(fp[::-1], -1)
 
-    # integrate
-    deltaG=integ_force(z,f)
-    
 
+# run code
+if __name__ == "__main__":
+
+    # get data
+    z, tf_list = get_force_data(files)
+    
+    # calculate deltaG
+    deltaG, f_mean = calc_deltaG(z,tf_list,first_tstep)
+    
     # plot
-    plt.plot(z, f, 'ro', z, deltaG, 'b-')
+    plt.plot(z, f_mean, 'ro', z, deltaG, 'b-')
     plt.show()
 
-
-# run main function
-if __name__ == "__main__":
-  pmf(files)
