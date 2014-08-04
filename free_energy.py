@@ -11,6 +11,7 @@ import progressbar as pb
 parser = argparse.ArgumentParser()
 parser.add_argument("-f", help="list of windows and pullf.xvg -files")
 parser.add_argument("-b", help="first time step to be used")
+parser.add_argument("-e", help="last time step to be used")
 parser.add_argument("-dt", help="use frame only when t MOD dt = first time (ps)")
 args = parser.parse_args()
 if args.f:
@@ -22,6 +23,10 @@ if args.b:
     first_tstep = float(args.b)
 else:
     first_tstep = 0
+if args.e:
+    last_tstep = float(args.e)
+else:
+    last_tstep = 0
 if args.dt:
     dt = float(args.dt)
 else:
@@ -29,7 +34,7 @@ else:
 
 
 
-def read_xvg(pullf_file_name, dt):
+def read_xvg(pullf_file_name):
     '''Reads one pullf.xvg -file.'''
     
     # Open file
@@ -37,8 +42,6 @@ def read_xvg(pullf_file_name, dt):
     # Init array
     forces=[]
     
-    # ps to fs
-    dt = round(1000*float(dt))
 
     # Read file
     for line in pullf_file:
@@ -47,10 +50,6 @@ def read_xvg(pullf_file_name, dt):
             continue
 
         timestep=float(line.split()[0])
-
-	# check the timestep
-        if round(1000*timestep) % dt != 0:
-            continue
 
         # Add force to array
         force=float(line.split()[1])
@@ -66,7 +65,7 @@ def read_xvg(pullf_file_name, dt):
 
 
 
-def get_force_data(list_file_name, dt):
+def get_force_data(list_file_name):
     '''Reads list of z-coordinates and corresponding pullf.xvg -files.  Returns
     list of z-zoordinates and list of numpy-arrays of pull-forces as function
     of time.'''
@@ -79,7 +78,7 @@ def get_force_data(list_file_name, dt):
     for line in list_file:
         pullf_file_name=line.split()[1]
         print('reading ' + pullf_file_name + '\r', end='')
-        pullf_data = read_xvg(pullf_file_name, dt)
+        pullf_data = read_xvg(pullf_file_name)
         tf_list.append(numpy.array(pullf_data))
         z.append(float(line.split()[0]))
     list_file.close()
@@ -94,15 +93,33 @@ def get_force_data(list_file_name, dt):
     
 
 
-def skip_frames(tf_list, first_tstep):
+def skip_frames(tf_list, first_tstep, last_tstep, dt):
     '''Skips frames before 'first_tstep'.'''
 
-    tf_list_equil=[]
+    new_tf_list = []
     for tf in tf_list:
         # skip non-equiliberated time steps
-        tf_list_equil.append(tf[ numpy.where( tf[:,0] >= first_tstep ) ])
+        new_tf_list.append(tf[ numpy.where( tf[:,0] >= first_tstep ) ])
 
-    return tf_list_equil
+
+    # Remove frames after last_tstep
+    if last_tstep > 0:
+        tf_list_last = []
+        for tf in new_tf_list:
+            tf_list_last.append(tf[ numpy.where( tf[:,0] <= last_tstep ) ])
+        new_tf_list=tf_list_last
+
+
+    # Only write frame when t MOD dt = first time (ps)
+    if dt > 0:
+        tf_list_dt = []
+        dt = round(1000*float(dt))
+        for tf in new_tf_list:
+            tf_list_dt.append(tf[ numpy.where( (tf[:,0]*1000).round() % dt == 0) ])
+        new_tf_list = tf_list_dt
+
+
+    return new_tf_list
 
 
 
@@ -118,11 +135,11 @@ def calc_mean_forces(tf_list):
 
 
     
-def calc_deltaG(z, tf_list, first_tstep):
+def calc_deltaG(z, tf_list, first_tstep, last_tstep, dt):
     '''Calculates deltaG'''
     
     # skip frames before 'first_tstep'
-    tf_list=skip_frames(tf_list, first_tstep)
+    tf_list=skip_frames(tf_list, first_tstep, last_tstep, dt)
 
     # get mean force -vector
     f_mean = calc_mean_forces(tf_list)
@@ -143,41 +160,47 @@ def autocor(x):
 
 
 
-def calc_diffcoef(z_list,tf_list,first_tstep):
+def calc_diffcoef(z_list,tf_list,first_tstep, last_tstep, dt):
     '''Calculates diffusion coefficient D'''
     
     # skip frames before 'first_tstep'
-    tf_list=skip_frames(tf_list, first_tstep)
+    tf_list=skip_frames(tf_list, first_tstep, last_tstep, dt)
 
-    # get mean force -vector
+    # mean forces
     f_mean_list = calc_mean_forces(tf_list)
 
-    # deltaF 
+    # random forces deltaF 
     deltaF_list = []
     for tf,f_mean in zip(tf_list, f_mean_list):
         deltaF_list.append( tf[:,1] - f_mean )
 
-    # time 
+    # time
     time_list = []
     for tf in tf_list:
         time_list.append(tf[:,0])
-    # shifted_time 
-    #shifted_time = numpy.add(tf_list[:,:,0].transpose(), -tf_list[:,0,0]).transpose()
 
     # Autocorrelation function <deltaF(z,t),deltaF(z,0)>
     acor_list=[]
     for deltaF,z in zip(deltaF_list,z_list):
-        print('calculating autocorrelation functions ' + str(z) + '\r', end='' )
+        line = 'calculating autocorrelation functions ' + str(z)
+        print(line + '\r', end='' )
+
         acor_list.append( autocor(deltaF) )
 
+        print(' '*len(line) + '\r', end='')
 
 
-    # Diffusion coefficient FIXME
+
+    # Diffusion coefficient
     D_list = []
     for acor,time,z in zip(acor_list,time_list,z_list):
-        print('calculating diffusion coefficient ' + str(z) + '\r', end='' )
-        D  = numpy.trapz(acor,time)
+        line = 'calculating diffusion coefficient ' + str(z)
+        print(line + '\r', end='' )
+
+        D  = 1/numpy.trapz(acor,time) # some random units...
         D_list.append(D)
+
+        print(' '*len(line) + '\r', end='')
     
     return D_list
 
@@ -196,7 +219,7 @@ if __name__ == "__main__":
     #numpy.save(files+'.npy',tf_list)
 
     # calculate deltaG
-    deltaG, f_mean = calc_deltaG(z, tf_list, first_tstep)
+    deltaG, f_mean = calc_deltaG(z, tf_list, first_tstep, last_tstep, df)
 
     # save deltaG
     #dG_plot = numpy.array([z, deltaG])
@@ -207,7 +230,7 @@ if __name__ == "__main__":
     plt.show()
 
     # calculate diffusion coefficient
-    D=calc_diffcoef(z, tf_list, first_tstep)
+    D=calc_diffcoef(z, tf_list, first_tstep, last_tstep, df)
     #print(D)
 
     # plot diffcoeff.
