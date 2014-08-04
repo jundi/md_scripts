@@ -210,7 +210,7 @@ def calc_diffcoef(z_list,tf_list,first_tstep, last_tstep, dt):
 if __name__ == "__main__":
 
     # get data
-    z, tf_list = get_force_data(files,dt)
+    z, tf_list = get_force_data(files)
 
     # get data from npy
     #z, tf_list = get_force_data_npy(files)
@@ -219,23 +219,23 @@ if __name__ == "__main__":
     #numpy.save(files+'.npy',tf_list)
 
     # calculate deltaG
-    deltaG, f_mean = calc_deltaG(z, tf_list, first_tstep, last_tstep, df)
+    deltaG, f_mean = calc_deltaG(z, tf_list, first_tstep, last_tstep, dt)
 
     # save deltaG
-    #dG_plot = numpy.array([z, deltaG])
-    #numpy.savetxt('deltaG', dG_plot.transpose())
+    dG_plot = numpy.array([z, deltaG])
+    numpy.savetxt('deltaG', dG_plot.transpose())
     
     # plot dG
-    plt.plot(z, f_mean, 'ro', z, deltaG, 'b-')
-    plt.show()
+    #plt.plot(z, f_mean, 'ro', z, deltaG, 'b-')
+    #plt.show()
 
     # calculate diffusion coefficient
-    D=calc_diffcoef(z, tf_list, first_tstep, last_tstep, df)
+    #D=calc_diffcoef(z, tf_list, first_tstep, last_tstep, dt)
     #print(D)
 
-    # plot diffcoeff.
-    plt.plot(z, D)
-    plt.show()
+     #plot diffcoeff.
+    #plt.plot(z, D)
+    #plt.show()
 
     #numpy.savetxt('tf_list', tf_list[1])
     #numpy.savetxt('D', D[1])
