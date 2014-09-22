@@ -6,6 +6,7 @@
 # -n index.ndx
 # -s topol.tpr
 # -f traj.xtc
+# -b first frame to use
 # 
 # analysis to be done
 # * rdf
@@ -45,6 +46,7 @@ structure="topol.tpr"
 index="index.ndx"
 begin=0
 tasks=() # empty array
+
 
 ####################
 # input parameters #
@@ -144,24 +146,32 @@ rms() {
 ###################
 # ORDER PARAMETER #
 ###################
+
+
 order() {
 
   workdir=g_order
   mkdir -p $workdir
   cd $workdir
 
-  # which are the C-atoms of the tail?
-  first_atom=38
-  last_atom=52
+  # create selection string for g_select
+  select=''
   resname="POPC"
+  palmitoyl=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52)
+  for atom in ${palmitoyl[@]}; do
+    select="$select name $atom and resname $resname;"
+  done
 
-  # create index file containing the tails using a script
-  /home/mikkolah/koodi/bash/g_select_tails.sh "$first_atom" "$last_atom" "$resname" "../$structure"
+  # create index file for palmitoyl
+  ndx_tail="$resname-palmitoyl.ndx"
+  g_select -s ../$structure -select "$select" -on $ndx_tail
 
   # Reference group
   ref_group="Lipids"
+  # Output file
+  order_xvg="order-$resname""_palmitoyl.xvg"
 
-  echo "$ref_group" | g_order -f ../$traj -nr ../$index -s ../$structure  -b $begin -n $resname-$first_atom-$last_atom.ndx -radial -permolecule -o $resname-$first_atom-$last_atom.xvg
+  echo "$ref_group" | g_order -f ../$traj -nr ../$index -s ../$structure  -b $begin -n $ndx_tail -radial -permolecule -o $order_xvg
 
   cd ..
 }
