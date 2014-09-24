@@ -1,4 +1,8 @@
 #!/usr/bin/python
+#
+# An exercise script written in a python course in summer 2014.
+# A stupid way to modify .gro file with python. 
+#
 
 import sys # sys.argv
 
