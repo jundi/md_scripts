@@ -94,7 +94,7 @@ main() {
   for task in ${tasks[@]}
   do
     echo -e "Calculating $task..."
-    $task  >"$task"".log" 2> "$task""2.log" && echo -e "$task done!" &
+    $task  >"$task"".log" 2> "$task""2.log" && echo -e "$task done!"
   done
 
   wait
@@ -198,8 +198,14 @@ potential() {
     mkdir $group
     cd $group
     select="com of group $ref_group pbc; group $group"
-    g_H_potential -f ../../$traj -n ../../$index -s ../../$structure  -b $begin -geo Radial -bin_size $binsize -select "$select"
+
+    g_H_potential -f ../../$traj -n ../../$index -s ../../$structure  -b $begin -geo Radial -bin_size $binsize -select "$select" &
     cd ..
+
+    while [[ $(jobs | wc -l) -gt 6 ]]; do
+      sleep 5
+    done
+
   done
 
   cd ..
@@ -232,8 +238,12 @@ sorient() {
     mkdir "$rmin-$rmax"
     cd "$rmin-$rmax"
 
-    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax
+    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax &
     cd ..
+
+    while [[ $(jobs | wc -l) -gt 6 ]]; do
+      sleep 5
+    done
 
     #next slice:
     rmin=$rmax
@@ -263,7 +273,12 @@ mindist() {
   dt=1000 # 1ns
 
   for ref_group in ${ref_groups[@]}; do
-    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist
+    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+
+    while [[ $(jobs | wc -l) -gt 6 ]]; do
+      sleep 5
+    done
+
   done
 
   cd ..
@@ -286,7 +301,11 @@ sas() {
   dt=1000 # 1ns
 
   for group in  ${groups[@]}; do
-    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt
+    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt &
+  done
+
+  while [[ $(jobs | wc -l) -gt 6 ]]; do
+    sleep 5
   done
 
   cd ..
