@@ -1,10 +1,11 @@
+# Modified GROMACS bash completion script for version 4.6.7
 # 
 # Modifications  by H. Mikkolainen:
-# 
-# Using vim:
+# Using vim
 # 1.   %s/; compgen -S '\/' -X '.*' -d $c//
 # 2.   %s/local p c /local p c \rcompopt -o plusdirs
-
+# 
+# These modifications allow smarter tab-completion of dirnames.
 
 shopt -s extglob
 _do_dssp_compl() {
