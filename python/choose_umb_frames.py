@@ -22,8 +22,8 @@ do_g_dist = 1
 # commandline parser
 #--------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", help=traj)
-parser.add_argument("-f", help=struct)
+parser.add_argument("-s", help=struct)
+parser.add_argument("-f", help=traj)
 parser.add_argument("-n", help=index)
 parser.add_argument("-p", help=top)
 parser.add_argument("--skip_g_dist", help='Dont calculate distances.', action='store_true')
