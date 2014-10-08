@@ -13,7 +13,7 @@ def choose_legend(comment,n):
     nonempty_words=[x for x in words if x]
     if n == -1:
         print(nonempty_words)
-        n=int(input('Which (0-' + str(len(nonempty_words)) + ')'))
+        n=int(input('Which? (0-' + str(len(nonempty_words)) + ')'))
     return (nonempty_words[n],n)
 
 
