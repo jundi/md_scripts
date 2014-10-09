@@ -43,10 +43,10 @@ with open(infile_name,'r') as infile:
         words=line.split()
         if len(words) > 2 and words[2] == 'comment':
             comment=words[3]
-        if len(words) > 2 and words[2] == 'legend':
+        if len(words) > 2 and words[2].startswith('legend'):
             legend, comment_num = choose_legend(comment,comment_num)
             print(legend)
-            newfile.append(' '.join(words[0:3]) + ' "' + legend+ '"' + '\n')
+            newfile.append(' '.join(words[0:2]) + ' legend "' + legend +'"' + '\n')
         else:
             newfile.append(line)
 
