@@ -232,7 +232,7 @@ sorient() {
   # Calculate sorient for 0.1nm slices
   rstep=0.1
   rmin=3
-  rmax=$rmin+$rstep
+  rmax=$(echo "$rmax+$rstep" | bc -l)
   rmaxmax=7
   dt=1000
 
