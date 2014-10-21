@@ -155,9 +155,12 @@ order() {
   cd $workdir
 
   # create selection string for g_select
-  select=''
   resname="POPC"
-  palmitoyl=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52)
+  # For some reason one extra group has to be added to the index file (when
+  # using radial-option).  Otherwise order parameter of last atom will be
+  # missing
+  palmitoyl=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52 C52) 
+  select=''
   for atom in ${palmitoyl[@]}; do
     select="$select name $atom and resname $resname;"
   done
@@ -226,11 +229,12 @@ sorient() {
   # water group
   group="Water"
 
-  # Calculate sorient for 0.5nm slices
-  rstep=0.5
-  rmin=0
+  # Calculate sorient for 0.1nm slices
+  rstep=0.1
+  rmin=3
   rmax=$rstep
-  rmaxmax=10
+  rmaxmax=7
+  dt=1000
 
   while [[ $(echo "$rmax < $rmaxmax" | bc -l) == 1 ]]; do # bash can't compare floats...
 
@@ -238,7 +242,7 @@ sorient() {
     mkdir "$rmin-$rmax"
     cd "$rmin-$rmax"
 
-    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax &
+    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax -dt $dt &
     cd ..
 
     while [[ $(jobs | wc -l) -gt 6 ]]; do

@@ -77,7 +77,7 @@ while itr < maxdist:
   time = dists[indice,0]
   dist = dists[indice,1]
   frame_list.append([time,dist])
-  print str(itr) + '   ' + str(dist)
+  print(str(itr) + '   ' + str(dist))
   itr = itr + window
 
 
