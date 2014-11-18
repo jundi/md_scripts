@@ -277,11 +277,11 @@ mindist() {
   dt=1000 # 1ns
 
   for ref_group in ${ref_groups[@]}; do
-    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist 
 
-    while [[ $(jobs | wc -l) -gt 6 ]]; do
-      sleep 5
-    done
+    #while [[ $(jobs | wc -l) -gt 6 ]]; do
+      #sleep 5
+    #done
 
   done
 
@@ -305,12 +305,12 @@ sas() {
   dt=1000 # 1ns
 
   for group in  ${groups[@]}; do
-    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt &
+    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
   done
 
-  while [[ $(jobs | wc -l) -gt 6 ]]; do
-    sleep 5
-  done
+  #while [[ $(jobs | wc -l) -gt 6 ]]; do
+    #sleep 5
+  #done
 
   cd ..
 }
