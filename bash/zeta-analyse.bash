@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ####################A######################
-#
 # Input:
 # -n index.ndx
 # -s topol.tpr
@@ -20,8 +19,8 @@
 ##########################################
 
 ####################A######################
-#
 # Index file should contain these groups: 
+#
 # * System
 # * CO (Cholesteryl oleate)
 # * POPC
@@ -36,6 +35,20 @@
 # * POPC_Protein (POPC and Protein)
 #
 ##########################################
+
+###########################################
+# Multithreading can be done by backrounding a job, and starting next job if
+# there is not too much jobs running already:
+#
+#  for group in ${groups[@]}
+#  do
+#     doherewhateveryouwanttodo &
+#     while [[ $(jobs | wc -l) -gt 6 ]]; do
+#        sleep 5
+#     done
+#  done
+#
+###########################################
 
 
 ############
@@ -156,16 +169,16 @@ order() {
 
   # create selection string for g_select
   resname="POPC"
-  # For some reason one extra group has to be added to the index file (when
+  # For some reason one dummy group has to be added to the index file (when
   # using radial-option).  Otherwise order parameter of last atom will be
   # missing
   palmitoyl=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52 C52) 
+
+  # create index file for palmitoyl
   select=''
   for atom in ${palmitoyl[@]}; do
     select="$select name $atom and resname $resname;"
   done
-
-  # create index file for palmitoyl
   ndx_tail="$resname-palmitoyl.ndx"
   g_select -s ../$structure -select "$select" -on $ndx_tail
 
@@ -202,12 +215,9 @@ potential() {
     cd $group
     select="com of group $ref_group pbc; group $group"
 
-    g_H_potential -f ../../$traj -n ../../$index -s ../../$structure  -b $begin -geo Radial -bin_size $binsize -select "$select" &
+    g_H_potential -f ../../$traj -n ../../$index -s ../../$structure  -b $begin -geo Radial -bin_size $binsize -select "$select" 
     cd ..
 
-    while [[ $(jobs | wc -l) -gt 6 ]]; do
-      sleep 5
-    done
 
   done
 
@@ -234,7 +244,7 @@ sorient() {
   rmin=3
   rmax=$(echo "$rmin+$rstep" | bc -l)
   rmaxmax=7
-  dt=1000
+  dt=1000 # 1ns
 
   while [[ $(echo "$rmax < $rmaxmax" | bc -l) == 1 ]]; do # bash can't compare floats...
 
@@ -242,12 +252,8 @@ sorient() {
     mkdir "$rmin-$rmax"
     cd "$rmin-$rmax"
 
-    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax -dt $dt &
+    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax -dt $dt 
     cd ..
-
-    while [[ $(jobs | wc -l) -gt 6 ]]; do
-      sleep 5
-    done
 
     #next slice:
     rmin=$rmax
@@ -278,11 +284,6 @@ mindist() {
 
   for ref_group in ${ref_groups[@]}; do
     echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist 
-
-    #while [[ $(jobs | wc -l) -gt 6 ]]; do
-      #sleep 5
-    #done
-
   done
 
   cd ..
@@ -307,10 +308,6 @@ sas() {
   for group in  ${groups[@]}; do
     echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
   done
-
-  #while [[ $(jobs | wc -l) -gt 6 ]]; do
-    #sleep 5
-  #done
 
   cd ..
 }
