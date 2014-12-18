@@ -278,7 +278,7 @@ mindist() {
   cd $workdir
 
   dist=0.25
-  ref_groups=(CO POPC Protein Lipids HDL POPC_Protein)
+  ref_groups=(HDL Protein Lipids CO POPC POPC_Protein)
   groups="NA CL Water"
   dt=1000 # 1ns
 
@@ -288,7 +288,6 @@ mindist() {
 
   cd ..
 }
-
 
 
 
