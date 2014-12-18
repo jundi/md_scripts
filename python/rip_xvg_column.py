@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Rips one column from multicolumn xvg to new file. New file is named as
 # "oldfile-column_n.xvg"
 #
