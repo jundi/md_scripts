@@ -1,0 +1,124 @@
+[ molecule ]
+CHOL
+
+[ martini ]
+ROH R1 R2 R3 R4 R5 C1 C2
+
+[ mapping ]
+opls
+
+[ atoms ]
+1    C1       R1
+2    H1       R1
+3    H2       R1
+4    C2       ROH
+5    H3       ROH
+6    H4       ROH
+7    C3       ROH ROH ROH R1
+8    H5       ROH
+9    O1       ROH
+10   H6       ROH
+11   C4       ROH ROH ROH R2
+12   H7       ROH ROH ROH R2
+13   H8       ROH ROH ROH R2
+14   C5       R1 ROH ROH R2 R2
+15   C6       R2 R2 R2 R2 ROH
+16   H9       R2 R2 R2 R2 ROH
+17   C7       R2
+18   H10      R2
+19   H11      R2
+20   C8       R2 R2 R3 R4
+21   H12      R2 R2 R3 R4
+22   C9       R3 R3 R3 R2 ROH
+23   H13      R3 R3 R3 R2 ROH
+24   C10      R1 R1
+25   C11      R3
+26   H14      R3
+27   H15      R3
+28   C12      R3 R3 R3 C1
+29   H16      R3 R3 R3 C1
+30   H17      R3 R3 R3 C1
+31   C13      R5
+32   C14      R4 R4 R3
+33   H18      R4
+34   C15      R4
+35   H19      R4
+36   H20      R4
+37   C16      R4 R4 C1
+38   H21      R4 R4 C1
+39   H22      R4 R4 C1
+40   C17      R5 R4 C1 C1
+41   H23      R5 R3 R4 C1 C1
+42   C18      R5
+43   H24      R5
+44   H25      R5
+45   H26      R5
+46   C19      R1
+47   H27      R1
+48   H28      R1
+49   H29      R1
+50   C20      C1 C1 C1 R4
+51   H30      C1
+52   C21      C1
+53   H31      C1
+54   H32      C1
+55   H33      C1
+56   C22      C1
+57   H34      C1
+58   H35      C1
+59   C23      C1 C1 C1 C2
+60   H36      C1 C1 C1 C2
+61   H37      C1 C1 C1 C2
+62   C24      C2 C1
+63   H38      C2 C1
+64   H39      C2 C1
+65   C25      C2 C2 C2 C1
+66   H40      C2 C2 C2 C1
+67   C26      C2
+68   H41      C2
+69   H42      C2
+70   H43      C2
+71   C27      C2
+72   H44      C2
+73   H45      C2
+74   H46      C2
+
+[chiral]
+H12 C8 C7 C14 C9 
+H18 C14 C15 C8 C13 
+H13 C9 C10 C11 C8 
+H23 C17 C16 C13 C20 
+
+[out]
+H30 C20 C22 C17 
+
+[chiral]
+C21 C20 C17 H30 C22
+H31 C20 C17 H30 C22
+H32 C20 C17 H30 C22
+H33 C20 C17 H30 C22
+
+[chiral]
+C18 C13 C12 C14 C17 
+H24 C13 C12 C14 C17 
+H25 C13 C12 C14 C17 
+H26 C13 C12 C14 C17 
+
+[out]
+C2 C3 O1 C4 
+H3 C3 O1 C4 
+H4 C3 O1 C4 
+
+[trans]
+C1 C2 C3 O1 
+H1 C2 C3 O1 
+H2 C2 C3 O1 
+
+[chiral]
+C19 C10 C1 C5 C9 
+H27 C10 C1 C5 C9 
+H28 C10 C1 C5 C9 
+H29 C10 C1 C5 C9 
+
+[chiral]
+H5 C3 C4 O1 C2 

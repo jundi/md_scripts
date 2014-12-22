@@ -1,0 +1,180 @@
+[ molecule ]
+POPC
+
+[ martini ]
+NC3 PO4 GL1 GL2 C1A C2A C3A C4A C1B C2B D3B C4B C5B
+
+[ mapping ]
+opls
+
+[ atoms ]
+1    N1       NC3
+2    C2       NC3
+3    H21      NC3
+4    H22      NC3
+5    H23      NC3
+6    C3       NC3
+7    H31      NC3
+8    H32      NC3
+9    H33      NC3
+10   C4       NC3
+11   H41      NC3
+12   H42      NC3
+13   H43      NC3
+14   C5       NC3 NC3 NC3 PO4
+15   H51      NC3 NC3 NC3 PO4
+16   H52      NC3 NC3 NC3 PO4
+17   C6       NC3 PO4
+18   H61      NC3 PO4
+19   H62      NC3 PO4
+20   O7       PO4 PO4 PO4 NC3
+21   P8       PO4
+22   O9       PO4
+23   O10      PO4
+24   O11      PO4 PO4 GL1
+25   C12      GL1 GL1 PO4
+26   H121     GL1 GL1 PO4
+27   H122     GL1 GL1 PO4
+28   C13      GL1 GL1 GL2
+29   H131     GL1 GL1 GL2
+30   O14      GL1 GL1 GL2 C1B
+31   C15      GL1 C1B
+32   O16      GL1
+33   C17      C1B C1B GL1
+34   H171     C1B C1B GL1
+35   H172     C1B C1B GL1
+36   C18      C1B
+37   H181     C1B
+38   H182     C1B
+39   C19      C1B C1B C2B
+40   H191     C1B C1B C2B
+41   H192     C1B C1B C2B
+42   C20      C1B C2B
+43   H201     C1B C2B
+44   H202     C1B C2B
+45   C21      C2B C2B C1B
+46   H211     C2B C2B C1B
+47   H212     C2B C2B C1B
+48   C22      C2B
+49   H221     C2B
+50   H222     C2B
+51   C23      C2B D3B
+52   H231     C2B D3B
+53   H232     C2B D3B
+54   C24      D3B D3B C2B
+55   H241     D3B
+56   C25      D3B D3B C4B
+57   H251     D3B
+58   C26      C4B D3B
+59   H261     C4B D3B
+60   H262     C4B D3B
+61   C27      C4B
+62   H271     C4B
+63   H272     C4B
+64   C28      C4B C4B C4B C5B
+65   H281     C4B C4B C4B C5B
+66   H282     C4B C4B C4B C5B
+67   C29      C4B C4B C5B
+68   H291     C4B C4B C5B
+69   H292     C4B C4B C5B
+70   C30      C5B C4B
+71   H301     C5B C4B
+72   H302     C5B C4B
+73   C31      C5B C5B C4B
+74   H311     C5B C5B C4B
+75   H312     C5B C5B C4B
+76   C32      C5B C5B C5B C4B
+77   H321     C5B C5B C5B C4B
+78   H322     C5B C5B C5B C4B
+79   C33      C5B
+80   H331     C5B
+81   H332     C5B
+82   H333     C5B
+83   C34      GL2 GL2 GL2 PO4
+84   H341     GL2 GL2 GL2 PO4
+85   H342     GL2 GL2 GL2 PO4
+86   O35      GL2
+87   C36      GL2 GL1 C1A
+88   O37      GL2
+89   C38      C1A C1A GL2
+90   H381     C1A C1A GL2
+91   H382     C1A C1A GL2
+92   C39      C1A
+93   H391     C1A
+94   H392     C1A
+95   C40      C1A C1A C2A
+96   H401     C1A C1A C2A
+97   H402     C1A C1A C2A
+98   C41      C1A C2A
+99   H411     C1A C2A
+100  H412     C1A C2A
+101  C42      C2A C2A C1A
+102  H421     C2A C2A C1A
+103  H422     C2A C2A C1A
+104  C43      C2A
+105  H431     C2A
+106  H432     C2A
+107  C44      C2A C2A C2A C3A
+108  H441     C2A C2A C2A C3A
+109  H442     C2A C2A C2A C3A
+110  C45      C2A C2A C3A
+111  H451     C2A C2A C3A
+112  H452     C2A C2A C3A
+113  C46      C3A C2A
+114  H461     C3A C2A
+115  H462     C3A C2A
+116  C47      C3A C3A C2A
+117  H471     C3A C3A C2A
+118  H472     C3A C3A C2A
+119  C48      C3A
+120  H481     C3A
+121  H482     C3A
+122  C49      C3A C3A C4A
+123  H491     C3A C3A C4A
+124  H492     C3A C3A C4A
+125  C50      C4A C3A
+126  H501     C4A C3A
+127  H502     C4A C3A
+128  C51      C4A C4A C3A
+129  H511     C4A C4A C3A
+130  H512     C4A C4A C3A
+131  C52      C4A
+132  H521     C4A
+133  H522     C4A
+134  H523     C4A
+
+;making R stereoisomer- placing HS
+[chiral]
+H131 C13 O14 C12 C34 
+
+; acyl esters
+[trans]
+C17 C15 O14 C13 
+[ out ]
+O16 C15 O14 C17 
+[trans]
+C38 C36 O35 C34 
+[out]
+O37 C36 O35 C38 
+
+;cis bonds in lipind chains
+[ out ]
+H241 C24 C23 C25 
+[ trans ]
+H251 C25 C24 C23 
+[ out ]
+C26 C25 C24 H251 
+
+;;;making a choline group
+[out]
+C3 N1 C2 C5 
+H31 N1 C2 C5 
+H32 N1 C2 C5 
+H33 N1 C2 C5 
+
+[ chiral ]
+C4 N1 C5 C2 C3 
+H41 N1 C5 C2 C3 
+H42 N1 C5 C2 C3 
+H43 N1 C5 C2 C3 
+
