@@ -6,6 +6,7 @@
 # -s topol.tpr
 # -f traj.xtc
 # -b first frame to use (ps)
+# -dt skip frames
 # -j max jobs
 # 
 # tasks:
@@ -49,6 +50,7 @@ traj=$(readlink -f traj.xtc)
 structure=$(readlink -f topol.tpr)
 index=$(readlink -f index.ndx)
 begin=0
+dt=0
 maxjobs=2 # max parallel jobs
 
 
@@ -82,6 +84,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -b)
       begin="$2"
+      shift
+      ;;
+    -dt)
+      dt="$2"
       shift
       ;;
     -j)
@@ -153,7 +159,7 @@ rdf() {
   ng=8
 
   # g_rdf
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng 8 &
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng 8  -dt $dt &
 
   # wait until other jobs finish
   waitjobs
@@ -176,7 +182,7 @@ rms() {
   groups="CO POPC Protein Lipids HDL"
 
   # g_rms
-  echo "$ref_group $groups" | g_rms -f $traj -n $index -s $structure -ng 5 -what rmsd &
+  echo "$ref_group $groups" | g_rms -f $traj -n $index -s $structure -ng 5 -what rmsd  -dt $dt & 
 
   # wait until other jobs finish
   waitjobs
@@ -222,7 +228,7 @@ order() {
   order_xvg="order-$resname""_palmitoyl.xvg"
 
   # g_order
-  echo "$ref_group" | g_order -f $traj -nr $index -s $structure  -b $begin -n $ndx_tail -radial -permolecule -o $order_xvg &
+  echo "$ref_group" | g_order -f $traj -nr $index -s $structure  -b $begin -n $ndx_tail -radial -permolecule -o $order_xvg -dt $dt &
 
   # wait until other jobs finish
   waitjobs
@@ -254,7 +260,7 @@ potential() {
     select="com of group $ref_group pbc; group $group"
 
     # g_H_potential
-    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" &
+    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt &
 
     # wait until other jobs finish
     waitjobs
@@ -285,7 +291,6 @@ sorient() {
   rmin=3
   rmax=$(echo "$rmin+$rstep" | bc -l)
   rmaxmax=7
-  dt=1000 # 1ns
 
   while [[ $(echo "$rmax < $rmaxmax" | bc -l) == 1 ]]; do # bash can't compare floats...
 
@@ -326,7 +331,6 @@ mindist() {
   dist=0.25
   ref_groups=(HDL Protein Lipids CO POPC POPC_Protein)
   groups="NA CL Water"
-  dt=1000 # 1ns
 
   for ref_group in ${ref_groups[@]}; do
 
@@ -355,7 +359,6 @@ sas() {
 
   ref_group="HDL"
   groups=(CO POPC Protein Lipids HDL)
-  dt=1000 # 1ns
 
   for group in  ${groups[@]}; do
 
