@@ -45,15 +45,16 @@
 ############
 # defaults #
 ############
-traj="traj.xtc"
-structure="topol.tpr"
-index="index.ndx"
+traj=$(readlink -f traj.xtc)
+structure=$(readlink -f topol.tpr)
+index=$(readlink -f index.ndx)
 begin=0
 maxjobs=2 # max parallel jobs
 
-#############
-# variables #
-#############
+
+####################
+# global variables #
+####################
 tasks=() # array to store tasks
 jobid=$BASHPID # jobid for jobcontrol
 
@@ -68,15 +69,15 @@ fi
 while [[ $# -gt 0 ]]; do    
   case "$1" in
     -s)
-      structure="$2"
+      structure=$(readlink -f $2)
       shift
       ;;
     -f)
-      traj="$2"
+      traj=$(readlink -f $2)
       shift
       ;;
     -n)
-      index="$2"
+      index=$(readlink -f $2)
       shift
       ;;
     -b)
@@ -152,7 +153,7 @@ rdf() {
   ng=8
 
   # g_rdf
-  echo "$ref_group $groups" | g_rdf -f ../$traj -n ../$index -s ../$structure  -b $begin -rdf atom -com -ng 8 &
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng 8 &
 
   # wait until other jobs finish
   waitjobs
@@ -175,7 +176,7 @@ rms() {
   groups="CO POPC Protein Lipids HDL"
 
   # g_rms
-  echo "$ref_group $groups" | g_rms -f ../$traj -n ../$index -s ../$structure -ng 5 -what rmsd &
+  echo "$ref_group $groups" | g_rms -f $traj -n $index -s $structure -ng 5 -what rmsd &
 
   # wait until other jobs finish
   waitjobs
@@ -211,7 +212,7 @@ order() {
   done
 
   ndx_tail="$resname-palmitoyl.ndx"
-  g_select -s ../$structure -select "$select" -on $ndx_tail
+  g_select -s $structure -select "$select" -on $ndx_tail
 
 
 
@@ -221,7 +222,7 @@ order() {
   order_xvg="order-$resname""_palmitoyl.xvg"
 
   # g_order
-  echo "$ref_group" | g_order -f ../$traj -nr ../$index -s ../$structure  -b $begin -n $ndx_tail -radial -permolecule -o $order_xvg &
+  echo "$ref_group" | g_order -f $traj -nr $index -s $structure  -b $begin -n $ndx_tail -radial -permolecule -o $order_xvg &
 
   # wait until other jobs finish
   waitjobs
@@ -253,7 +254,7 @@ potential() {
     select="com of group $ref_group pbc; group $group"
 
     # g_H_potential
-    g_H_potential -f ../../$traj -n ../../$index -s ../../$structure  -b $begin -geo Radial -bin_size $binsize -select "$select" &
+    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" &
 
     # wait until other jobs finish
     waitjobs
@@ -293,7 +294,7 @@ sorient() {
     cd "$rmin-$rmax"
 
     # g_sorient
-    echo "$ref_group $group" | g_sorient -f ../../$traj -n ../../$index -s ../../$structure -b $begin -com -rmin $rmin -rmax $rmax -dt $dt &
+    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -com -rmin $rmin -rmax $rmax -dt $dt &
 
     # wait until other jobs finish
     waitjobs
@@ -330,7 +331,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f ../$traj -n ../$index -s ../$structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
 
     # wait until other jobs finish
     waitjobs
@@ -359,7 +360,7 @@ sas() {
   for group in  ${groups[@]}; do
 
     # g_sas
-    echo "$ref_group $group" | g_sas -f ../$traj -n ../$index -s ../$structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt & 
+    echo "$ref_group $group" | g_sas -f $traj -n $index -s $structure -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt & 
 
     # wait until other jobs finish
     waitjobs
