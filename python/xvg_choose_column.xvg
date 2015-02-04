@@ -4,7 +4,7 @@
 # "oldfile-column_n.xvg"
 #
 # Example usage:
-# $ python rip_xvg_column.py old_file.xv 2
+# $ python xvg_choose_column.py old_file.xvg 2
 #
 
 import sys

@@ -84,7 +84,7 @@ xy=xy.transpose()
 
 
 with open(outfile, 'w') as writer:
-    #FIXME: The header is hard codec.
+    #FIXME: The header is hard coded.
     # write header
     writer.write('@    title "Cumulative total radial average charge"' + '\n')
     writer.write('@    xaxis  label "Distance [nm]"' + '\n')
