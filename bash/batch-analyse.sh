@@ -50,7 +50,7 @@ traj=$(readlink -f traj.xtc)
 structure=$(readlink -f topol.tpr)
 index=$(readlink -f index.ndx)
 begin=0
-dt=0
+dt=-1
 maxjobs=2 # max parallel jobs
 
 
@@ -159,7 +159,7 @@ rdf() {
   ng=8
 
   # g_rdf
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng 8  -dt $dt &
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng 8  -dt $dt -cn & 
 
   # wait until other jobs finish
   waitjobs
@@ -328,7 +328,7 @@ mindist() {
   mkdir -p $workdir
   cd $workdir
 
-  dist=0.25
+  dist=0.35
   ref_groups=(HDL Protein Lipids CO POPC POPC_Protein)
   groups="NA CL Water"
 
