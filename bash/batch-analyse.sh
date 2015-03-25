@@ -17,6 +17,7 @@
 # * potential
 # * mindist (very slow)
 # * sas (very slow)
+# * dssp 
 #
 # example:
 # $ sh batch-analyse.sh -n index.ndx -s topol.tpr -f traj.xtc -b 100000 -j 4 rdf sorient sas
@@ -94,7 +95,7 @@ while [[ $# -gt 0 ]]; do
       maxjobs="$2"
       shift
       ;;
-    rdf|sorient|order|rms|potential|mindist|sas)
+    rdf|sorient|order|rms|potential|mindist|sas|dssp)
       tasks+=("$1")
       ;;
     *)
@@ -367,6 +368,36 @@ sas() {
 
     # wait until other jobs finish
     waitjobs
+
+  done
+
+  cd ..
+}
+
+
+
+########
+# DSSP #
+########
+dssp() {
+
+  workdir=do_dssp
+  mkdir -p $workdir
+  cd $workdir
+
+  chains=(Chain_1 Chain_2 Chain_3 Chain_4)
+  for chain in ${chains[@]}; do
+
+    mkdir -p $chain
+    cd $chain
+
+    # do_dssp
+    echo "$chain" | do_dssp -f $traj -n $index -s $structure -dt $dt & 
+
+    # wait until other jobs finish
+    waitjobs
+
+    cd ..
 
   done
 
