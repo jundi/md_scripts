@@ -19,9 +19,7 @@ infile = open(infile_name,'r')
 outfile = open(outfile_name,'w')
 
 for line in infile:
-	if line.startswith('#') or line.startswith('@'):
-		outfile.write(line)
-	else:
+	if not (line.startswith('#') or line.startswith('@')):
 		words=line.split()
 		outfile.write(words[0] + ' ' + words[int(column_num)] + '\n')
 
