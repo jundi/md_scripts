@@ -134,7 +134,8 @@ if [[ -z $traj_nw ]]; then
   traj_nw=$traj
 fi
 if [[ -z $structure_nw ]]; then
-  structure_nw=$sructure
+
+  structure_nw=$structure
 fi
 if [[ -z $index_nw ]]; then
   index_nw=$index
