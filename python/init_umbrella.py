@@ -4,6 +4,7 @@ import argparse
 import os
 import numpy
 import shutil
+import math
 
 
 
@@ -22,10 +23,11 @@ do_g_dist = 1
 # commandline parser
 #--------------------------------
 parser = argparse.ArgumentParser()
-parser.add_argument("-s", help=struct)
-parser.add_argument("-f", help=traj)
-parser.add_argument("-n", help=index)
-parser.add_argument("-p", help=top)
+parser.add_argument("-s", help="struct")
+parser.add_argument("-f", help="traj")
+parser.add_argument("-n", help="index")
+parser.add_argument("-p", help="top")
+parser.add_argument("-w", help="window width")
 parser.add_argument("--skip_g_dist", help='Dont calculate distances.', action='store_true')
 args = parser.parse_args()
 
@@ -67,10 +69,11 @@ if do_g_dist > 0:
 frame_list = ([])
 dists = numpy.loadtxt('dist.xvg',comments='@',skiprows=8,usecols=(0,4))
 
-# Maximum distance
+# Maximum/minimum distance
 maxdist = dists[:,1].max()
+mindist = dists[:,1].min()
 
-itr = 0
+itr = math.ceil(mindist)
 while itr < maxdist:
   diff = abs( dists[:,1] - itr )
   indice = diff.argmin()

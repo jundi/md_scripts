@@ -21,6 +21,7 @@
 # * mindist (very slow)
 # * sas (very slow)
 # * dssp 
+# * gyrate
 #
 # example:
 # $ sh batch-analyse.sh -n index.ndx -s topol.tpr -f traj.xtc -b 100000 -j 4 rdf sorient sas
@@ -118,7 +119,7 @@ while [[ $# -gt 0 ]]; do
       maxjobs="$2"
       shift
       ;;
-    rdf|sorient|order|rms|potential|mindist|sas|dssp)
+    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate)
       tasks+=("$1")
       ;;
     *)
@@ -488,6 +489,29 @@ dssp() {
 
     cd ..
 
+  done
+
+  cd ..
+}
+
+
+###################
+# GYRATION RADIUS #
+###################
+gyrate() {
+
+  workdir=g_gyrate
+  mkdir -p $workdir
+  cd $workdir
+
+  groups=(CO Lipids HDL Protein)
+
+  for group in ${groups[@]}; do
+
+    echo $group | g_gyrate -f $traj_nw -n $index_nw -s $structure_nw -dt $dt -o ${group}.xvg &
+
+    # wait until other jobs finish
+    waitjobs
   done
 
   cd ..
