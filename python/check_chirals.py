@@ -51,8 +51,8 @@ universe = MDAnalysis.Universe(coordinatefile)
 chirals = len(atomnames)/4
 
 # loop through all residues
-resids = universe.selectAtoms("resname " + resname).resids()
-for r in resids:
+residues = universe.selectAtoms("resname " + resname).residues
+for r in residues:
 
     handedness = [] # handedness of each chiral centers in residue
 
@@ -62,8 +62,8 @@ for r in resids:
         # get coordinates of four atoms
         coord = []
         for n in atomnames[4*c_itr:4*c_itr+4]:
-            atom = universe.selectAtoms("resid " + str(r) + " and name " + n)
-            coord.append(atom.positions[0])
+            atom = getattr(r, n)
+            coord.append(atom.position)
 
         # get the normal of plane spanned by three atoms
         vec12 = coord[1] - coord[0]                 # vector from atom1 to atom2
@@ -83,4 +83,4 @@ for r in resids:
             # angle smaller than 90 degrees -> parallel -> "Rectus"
             handedness.append('R')
 
-    print("{0}{1:5}{2}".format(resname, str(r), " ".join(handedness)))
+    print("{0}{1:5}{2}".format(resname, str(r.id), " ".join(handedness)))
