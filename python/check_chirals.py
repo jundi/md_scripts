@@ -13,7 +13,8 @@ import sys
 ### DEFAULTS
 coordinatefile="confout.gro"
 resname="LBPA"
-atomnames=["O21", "C1", "C3", "HS", "O21'", "C1'", "C3'", "HS'"]
+#atomnames=["O21", "C1", "C3", "HS", "O21'", "C1'", "C3'", "HS'"]
+atomnames=["OC2", "C1", "C3", "H2A", "OC2'", "C1'", "C3'", "H2A'"]
 
 
 
