@@ -10,38 +10,62 @@ import sys
 
 
 
+### ATOMDICT
+# some atom lists hard-coded
+atomdict={}
+atomdict["LBPA22"] = ["O21", "C1", "C3", "HS", "O21'", "C1'", "C3'", "HS'"]
+atomdict["LBPA33"] = ["OC2", "C1", "C3", "H2A", "OC2'", "C1'", "C3'", "H2A'"]
+
+
+
 ### DEFAULTS
 coordinatefile="confout.gro"
 resname="LBPA"
-#atomnames=["O21", "C1", "C3", "HS", "O21'", "C1'", "C3'", "HS'"]
-atomnames=["OC2", "C1", "C3", "H2A", "OC2'", "C1'", "C3'", "H2A'"]
+atomnames=atomdict["LBPA22"]
 
 
 
 ### PARSE ARGUMENTS
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("-c", help='Coordinate file')
-parser.add_argument("-a", help='Atoms bound to the chiral center (in order of'
-                               ' priority). If there is n chiral centers, 4n '
-                               'atoms should be given.', nargs='+')
+parser.add_argument("-a", help='''Atoms bound to the chiral center
+                                  (in order of priority). If there is n chiral
+                                  centers, 4n atoms should be given.  If only
+                                  one argument is given, some of the hard coded
+                                  lists are used.''', nargs='+')
 parser.add_argument("-r", help='Resname of the molecule to be checked.')
+parser.add_argument("-l", help='Show hard coded atom lists.', action='store_true')
 args = parser.parse_args()
+
+if args.l:
+    for i in atomdict:
+        print("{0}: {1}".format(i, " ".join(atomdict[i])))
+    sys.exit()
 
 if args.c:
     coordinatefile = args.c
 else:
     print("Using default coordinate file: " + coordinatefile)
+
+if args.r:
+    resname = args.r
+else:
+    print("Using default resname: " + resname)
+
 if args.a:
-    if len(args.a) % 4 > 0:
+    if len(args.a) == 1:
+        if args.a[0] in atomdict:
+            atomnames = atomdict[args.a[0]]
+            print("Using atoms: " + ", ".join(atomnames))
+        else:
+            sys.exit("Atom list {0} is not known.".format(args.a[0]))
+
+    elif len(args.a) % 4 > 0:
         sys.exit("Wrong number of atoms.")
     else:
         atomnames = args.a
 else:
-    print("Using default atoms: " + resname)
-if args.r:
-    resname = args.r
-else:
-    print("Using default resname: " + ", ".join(atomnames))
+    print("Using default atoms: " + ", ".join(atomnames))
 
 
 
@@ -58,11 +82,11 @@ for r in residues:
     handedness = [] # handedness of each chiral centers in residue
 
     # loop through all chiral centers
-    for c_itr in range(0,chirals):
+    for c in range(0,chirals):
 
         # get coordinates of four atoms
         coord = []
-        for n in atomnames[4*c_itr:4*c_itr+4]:
+        for n in atomnames[4*c:4*c+4]:
             atom = getattr(r, n)
             coord.append(atom.position)
 
