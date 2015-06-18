@@ -7,6 +7,7 @@ import argparse
 import MDAnalysis
 import numpy 
 import sys
+import os.path
 
 
 
@@ -35,23 +36,29 @@ parser.add_argument("-a", help='''Atoms bound to the chiral center
                                   lists are used.''', nargs='+')
 parser.add_argument("-r", help='Resname of the molecule to be checked.')
 parser.add_argument("-l", help='Show hard coded atom lists.', action='store_true')
+parser.add_argument("-s", help='Set configuration to R/S.', nargs='+')
+parser.add_argument("-o", help='Output file (if using -s)')
 args = parser.parse_args()
 
+# list hard coded atom lists
 if args.l:
     for i in atomdict:
         print("{0}: {1}".format(i, " ".join(atomdict[i])))
     sys.exit()
 
+# set coordinate file
 if args.c:
     coordinatefile = args.c
 else:
     print("Using default coordinate file: " + coordinatefile)
 
+# set resname
 if args.r:
     resname = args.r
 else:
     print("Using default resname: " + resname)
 
+# set atom list
 if args.a:
     if len(args.a) == 1:
         if args.a[0] in atomdict:
@@ -66,6 +73,20 @@ if args.a:
         atomnames = args.a
 else:
     print("Using default atoms: " + ", ".join(atomnames))
+
+# set list of labels
+if args.s:
+    if len(args.s) > (len(atomnames) / 4):
+        sys.exit("Too many arguments for -s.")
+    else:
+        label = args.s
+
+# set output file
+if args.o:
+    if os.path.exists(args.o):
+        exit("File {} already exists".format(args.o))
+    else:
+        outputfile = args.o
 
 
 
@@ -85,10 +106,10 @@ for r in residues:
     for c in range(0,chirals):
 
         # get coordinates of four atoms
-        coord = []
+        atoms = MDAnalysis.core.AtomGroup.AtomGroup([])
         for n in atomnames[4*c:4*c+4]:
-            atom = getattr(r, n)
-            coord.append(atom.position)
+            atoms = atoms + getattr(r, n)
+        coord = atoms.positions
 
         # get the normal of plane spanned by three atoms
         vec12 = coord[1] - coord[0]                 # vector from atom1 to atom2
@@ -108,4 +129,14 @@ for r in residues:
             # angle smaller than 90 degrees -> parallel -> "Rectus"
             handedness.append('R')
 
-    print("{0}{1:5}{2}".format(resname, str(r.id), " ".join(handedness)))
+        # Switch handedness?
+        if args.s and len(label) > c and (handedness[-1] != label[c]):
+            atoms[3].position = atoms[3].position - 2*vec4
+            print("Switching {0}. chiral center in {1} to {2}".format(str(c+1), resname+str(r.id), label[c]))
+
+    if not (args.s):
+        print("{0}{1:5}{2}".format(resname, str(r.id), " ".join(handedness)))
+
+# write new file with modified chirals
+if args.s:
+    universe.atoms.write(outputfile)
