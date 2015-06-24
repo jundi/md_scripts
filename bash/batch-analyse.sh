@@ -1,51 +1,54 @@
 #!/bin/bash
 
-####################A######################
-# Input:
-# -n index.ndx
-# -nn index_nowater.ndx
-# -s topol.tpr
-# -sn topol_nowater.tpr
-# -f traj.xtc
-# -fn traj_nowater.xtc
-# -b first frame to use (ps)
-# -dt skip frames
-# -j max jobs
-# 
-# tasks:
-# * rdf
-# * sorient
-# * order
-# * rms
-# * potential
-# * mindist (very slow)
-# * sas (very slow)
-# * dssp 
-# * gyrate
-#
-# example:
-# $ sh batch-analyse.sh -n index.ndx -s topol.tpr -f traj.xtc -b 100000 -j 4 rdf sorient sas
-#
-##########################################
-
-####################A######################
-# Index file should contain these groups: 
-#
-# * System
-# * CO (Cholesteryl oleate)
-# * CHO (Cholesteryl oleate)
-# * POPC
-# * Protein
-# * NA
-# * CL
-# * Water
-# * Lipids (All lipids)
-# * HDL (Lipids and Proteins)
-# * POPC_P (POPC Phosphate P-)
-# * POPC_N (POPC Choline N+)
-# * POPC_Protein (POPC and Protein)
-#
-##########################################
+usage="\n
+Usage: \n
+\t$(basename $0) [OPTION...] [TASK1,TASK2,...] \n
+\n
+Example: \n
+\t$ sh batch-analyse.sh -n index.ndx -s topol.tpr -f traj.xtc -b 100000 -j 4 rdf sorient sas \n
+\n
+Options: \n
+\t-n \t index.ndx \n
+\t-nn \t index_nowater.ndx \n
+\t-s \t topol.tpr \n
+\t-sn \t topol_nowater.tpr \n
+\t-f \t traj.xtc \n
+\t-fn \t traj_nowater.xtc \n
+\t-b \t first frame to use (ps) \n
+\t-dt \t skip frames \n
+\t-j \t max parallel jobs \n
+\n
+Tasks: \n
+\tdssp \n
+\tgyrate \n
+\torder \n
+\tmindist (water needed)  \n
+\tpotential (water needed) \n
+\trdf \n
+\trms \n
+\tsas \n
+\tsorient (water needed) \n
+\n
+Index file should contain these groups: \n
+\tSystem \n
+\tCO (Cholesteryl oleate) \n
+\tCHO (Cholesterol) \n
+\tPOPC and/or DPPC\n
+\tProtein \n
+\tNA \n
+\tCL \n
+\tWater \n
+\tMonolayer (CHO and POPCs) \n
+\tLipids (All lipids) \n
+\tHDL (Lipids and Proteins) \n
+\tPOPC_P and/or DPPC_P (PL Phosphate P-) \n
+\tPOPC_N and/or DPPC_N (PL Choline N+) \n
+\tPOPC_Protein and/or DPPC_Protein (PL and Protein) \n
+\tChain_1 \n
+\tChain_2 \n
+\tChain_3 \n
+\tChain_4 \n
+"
 
 
 
@@ -83,6 +86,10 @@ if [[ $# -lt 1 ]]; then
 fi
 while [[ $# -gt 0 ]]; do    
   case "$1" in
+    -h)
+      echo -e $usage
+      exit 0
+      ;;
     -s)
       structure=$(readlink -f $2)
       shift
@@ -123,7 +130,7 @@ while [[ $# -gt 0 ]]; do
       tasks+=("$1")
       ;;
     *)
-      echo "RTFM"
+      echo -e $usage
       exit 2
       ;;
   esac
@@ -155,7 +162,7 @@ main() {
     $task  >"$task"".log" 2> "$task""2.log"
   done
 
-  wait
+  #wait
   echo -e "All tasks completed."
 
 }
@@ -192,8 +199,14 @@ rdf() {
   cd $workdir
 
   ref_group="Lipids"
-  groups="CO CHO POPC Protein NA CL Water POPC_P POPC_N"
-  ng=9
+  groups=""
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "Water" "POPC_P" "POPC_N" "DPPC_P" "DPPC_N")
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      groups="${groups} ${g}"
+    fi
+  done
+  ng=$(echo $groups | wc -w)
 
   # g_rdf
   echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng $ng  -dt $dt -cn & 
@@ -216,10 +229,17 @@ rms() {
   cd $workdir
 
   ref_group="Lipids"
-  groups="CO CHO POPC Protein Lipids HDL"
+  groups=""
+  grouplist=("CO" "CHO" "POPC" "DPPC" "Protein" "Monolayer" "Lipids" "HDL")
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      groups="${groups} ${g}"
+    fi
+  done
+  ng=$(echo $groups | wc -w)
 
   # g_rms
-  echo "$ref_group $groups" | g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng 6 -what rmsd  -dt $dt & 
+  echo "$ref_group $groups" | g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng $ng -what rmsd  -dt $dt & 
 
   # wait until other jobs finish
   waitjobs
@@ -241,60 +261,68 @@ order() {
   cd $workdir
 
 
-  ### create index file for palmitoyl
-  resname="POPC"
-  # For some reason one dummy group has to be added to the index file (when
-  # using radial-option).  Otherwise order parameter of last atom will be
-  # missing
-  palmitoyl_carbons=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52 C52) 
-  palmitoyl_select=''
-  for atom in ${palmitoyl_carbons[@]}; do
-    palmitoyl_select="$palmitoyl_select name $atom and resname $resname;"
+  tailnames=("POPC_SN1" "POPC_SN2" "POPC_SN2_unsat" "DPPC_SN1" "DPPC_SN2")
+  for tn in ${tailnames[@]}; do
+
+    # TAIL ATOMS
+    # For some reason (bug?) one dummy group has to be added to the index file
+    # (when using radial-option).  Otherwise order parameter of last atom will
+    # be missing.
+    case $tn in
+      "POPC_SN1")
+	tail=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52 C52)
+	resname=POPC
+	unsat="-nounsat"
+	;;
+      "POPC_SN2")
+	tail=(C15 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C31 C32 C33 C33)
+	resname=POPC
+	unsat="-nounsat"
+	;;
+      "POPC_SN2_unsat")
+	tail=(C23 C24 C25 C26 C26)
+	resname=POPC
+	unsat="-unsat"
+	;;
+      "DPPC_SN1")
+	tail=(C34 C36 C37 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C50) 
+	resname=DPPC
+	unsat="-nounsat"
+	;;
+      "DPPC_SN2")
+	tail=(C15 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C31 C31) 
+	resname=DPPC
+	unsat="-nounsat"
+	;;
+      *)
+	echo "ERROR: Unknown tail"
+	continue
+	;;
+    esac
+
+    if [[ ! $(grep " $resname " $index) ]]; then
+      continue
+    fi
+
+
+    # BUILD INDEX FILE
+    select=""
+    for atom in ${tail[@]}; do
+      select="$select name $atom and resname $resname;"
+    done
+
+    tail_ndx="${tn}.ndx"
+    g_select -s $structure_nw -select "$select" -on $tail_ndx
+
+
+    # G_ORDER
+    # Reference group
+    ref_group="Lipids"
+    echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat &
+
+    # wait until other jobs finish
+    waitjobs
   done
-  palmitoyl_ndx="${resname}_palmitoyl.ndx"
-  g_select -s $structure_nw -select "$palmitoyl_select" -on $palmitoyl_ndx
-
-  # oleyl chain
-  oleyl_carbons=(C15 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C31 C32 C33 C33) 
-  oleyl_select=''
-  for atom in ${oleyl_carbons[@]}; do
-    oleyl_select="$oleyl_select name $atom and resname $resname;"
-  done
-  oleyl_ndx="${resname}_oleyl.ndx"
-  g_select -s $structure_nw -select "$oleyl_select" -on $oleyl_ndx
-
-  # unsaturated part of oleyl chain
-  oleyl_unsat_carbons=(C23 C24 C25 C26 C26) 
-  oleyl_unsat_select=''
-  for atom in ${oleyl_unsat_carbons[@]}; do
-    oleyl_unsat_select="$oleyl_unsat_select name $atom and resname $resname;"
-  done
-  oleyl_unsat_ndx="${resname}_oleyl_unsat.ndx"
-  g_select -s $structure_nw -select "$oleyl_unsat_select" -on $oleyl_unsat_ndx
-
-
-
-  # Reference group
-  ref_group="Lipids"
-
-  # Output files
-  order_palmitoyl="order_${resname}_palmitoyl.xvg"
-  sliced_palmitoyl="sliced_${resname}_palmitoyl.xvg"
-  order_oleyl="order_${resname}_oleyl.xvg"
-  sliced_oleyl="sliced_${resname}_oleyl.xvg"
-  order_oleyl_unsat="order_${resname}_oleyl_unsat.xvg"
-  sliced_oleyl_unsat="sliced_${resname}_oleyl_unsat.xvg"
-
-  # g_order
-  echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $palmitoyl_ndx -radial -permolecule -o $order_palmitoyl -os $sliced_palmitoyl -dt $dt &
-  # wait until other jobs finish
-  waitjobs
-  echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $oleyl_ndx -radial -permolecule -o $order_oleyl -os $sliced_oleyl -dt $dt &
-  # wait until other jobs finish
-  waitjobs
-  echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $oleyl_unsat_ndx -radial -permolecule -o $order_oleyl_unsat -os $sliced_oleyl_unsat -dt $dt &
-  # wait until other jobs finish
-  waitjobs
 
   cd ..
 }
@@ -314,8 +342,15 @@ potential() {
   binsize=0.05
   # Reference group
   ref_group="Lipids"
-  groups_nw=(CO CHO POPC Protein NA CL POPC_N POPC_P)
-  groups_water=(Water System)
+
+  groups_nw=()
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      groups_nw+=$g
+    fi
+  done
+  groups_water=("Water" "System")
 
   for group in ${groups_nw[@]}
   do
@@ -349,6 +384,7 @@ potential() {
 
   cd ..
 }
+
 
 
 #####################
@@ -408,14 +444,20 @@ mindist() {
   cd $workdir
 
   dist=0.35
-  ref_groups=(HDL Protein Lipids CO CHO POPC POPC_Protein)
+  ref_groups=()
+  group_list=(HDL Protein Lipids Monolayer CO CHO POPC DPPC POPC_Protein DPPC_Protein)
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      ref_groups+=$g
+    fi
+  done
 
 
   groups="NA CL"
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+    echo "$ref_group $groups" | g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
 
     # wait until other jobs finish
     waitjobs
@@ -426,7 +468,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 3 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
 
     # wait until other jobs finish
     waitjobs
@@ -449,7 +491,13 @@ sas() {
   cd $workdir
 
   ref_group="HDL"
-  groups=(CO CHO POPC Protein Lipids HDL)
+  groups=()
+  group_list=(CO CHO POPC DPPC Protein Monolayer Lipids HDL)
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      groups+=$g
+    fi
+  done
 
   for group in  ${groups[@]}; do
 
@@ -493,6 +541,7 @@ dssp() {
 
   cd ..
 }
+
 
 
 ###################

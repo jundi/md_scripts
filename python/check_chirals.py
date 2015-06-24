@@ -1,7 +1,8 @@
 #!/usr/bin/env python2
 """
-Checks the R/S-handedness of molecules stereocenters based on the coordinates of
-the four atoms bound to a chiral center.
+Checks the R/S-handedness of molecules stereocenters based on the coordinates
+of the chiral center and four atoms bound to it. This script can not handle
+PBC, so take care that molecules in your coordinate files are not broken.
 """
 import argparse 
 import MDAnalysis
@@ -12,28 +13,25 @@ import os.path
 
 
 ### ATOMDICT
-# some atom lists hard-coded
+# some default atom lists hard coded
 atomdict={}
-atomdict["LBPA22"] = ["O21", "C1", "C3", "HS", "O21'", "C1'", "C3'", "HS'"]
-atomdict["LBPA33"] = ["OC2", "C1", "C3", "H2A", "OC2'", "C1'", "C3'", "H2A'"]
-
-
-
-### DEFAULTS
-coordinatefile="confout.gro"
-resname="LBPA"
-atomnames=atomdict["LBPA22"]
+# LBPA 2-2' isoform
+atomdict["LBPA22"] = ["C2", "O21", "C1", "C3", "HS", "C2'", "O21'", "C1'", "C3'", "HS'"]
+# LBPA 3-3' isoform
+atomdict["LBPA33"] = ["C2", "OC2", "C1", "C3", "H2A", "C2'", "OC2'", "C1'", "C3'", "H2A'"]
 
 
 
 ### PARSE ARGUMENTS
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("-c", help='Coordinate file')
-parser.add_argument("-a", help='''Atoms bound to the chiral center
-                                  (in order of priority). If there is n chiral
-                                  centers, 4n atoms should be given.  If only
-                                  one argument is given, some of the hard coded
-                                  lists are used.''', nargs='+')
+parser.add_argument("-a", help='''Names of chiral center atom and atoms bound
+                                  to the chiral center (in order of priority).
+                                  If there is n chiral centers, 4n atoms 
+                                  should be given. If only one argument is 
+                                  given, some of the hard coded lists are
+                                  used.''',
+                                  nargs='+')
 parser.add_argument("-r", help='Resname of the molecule to be checked.')
 parser.add_argument("-l", help='Show hard coded atom lists.', action='store_true')
 parser.add_argument("-s", help='Set configuration to R/S.', nargs='+')
@@ -50,12 +48,14 @@ if args.l:
 if args.c:
     coordinatefile = args.c
 else:
+    coordinatefile="confout.gro"
     print("Using default coordinate file: " + coordinatefile)
 
 # set resname
 if args.r:
     resname = args.r
 else:
+    resname="LBPA"
     print("Using default resname: " + resname)
 
 # set atom list
@@ -67,16 +67,17 @@ if args.a:
         else:
             sys.exit("Atom list {0} is not known.".format(args.a[0]))
 
-    elif len(args.a) % 4 > 0:
+    elif len(args.a) % 5 > 0:
         sys.exit("Wrong number of atoms.")
     else:
         atomnames = args.a
 else:
+    atomnames=atomdict["LBPA22"]
     print("Using default atoms: " + ", ".join(atomnames))
 
 # set list of labels
 if args.s:
-    if len(args.s) > (len(atomnames) / 4):
+    if len(args.s) > (len(atomnames) / 5):
         sys.exit("Too many arguments for -s.")
     else:
         label = args.s
@@ -94,7 +95,7 @@ if args.o:
 universe = MDAnalysis.Universe(coordinatefile) 
 
 # number of chiral centers
-chirals = len(atomnames)/4
+chirals = len(atomnames)/5
 
 # loop through all residues
 residues = universe.selectAtoms("resname " + resname).residues
@@ -107,20 +108,18 @@ for r in residues:
 
         # get coordinates of four atoms
         atoms = MDAnalysis.core.AtomGroup.AtomGroup([])
-        for n in atomnames[4*c:4*c+4]:
+        for n in atomnames[5*c:5*c+5]:
             atoms = atoms + getattr(r, n)
         coord = atoms.positions
 
         # get the normal of plane spanned by three atoms
-        vec12 = coord[1] - coord[0]                 # vector from atom1 to atom2
-        vec13 = coord[2] - coord[0]                 # vector from atom1 to atom3
+        vec12 = coord[2] - coord[1]                 # vector from atom1 to atom2
+        vec13 = coord[3] - coord[1]                 # vector from atom1 to atom3
         crs123 = numpy.cross(vec12, vec13)          # plane normal vector
 
         # which side of the plane is the fourth atom?
-        com123 = (coord[0] + coord[1] + coord[2])/3 # center of mass
-        vec4 = coord[3] - com123                    # vector from the plane to atom4
-
-        # Is the the plane normal vector parallel or antiparallel with vec4?
+        com123 = (coord[1] + coord[2] + coord[3])/3 # center of mass
+        vec4 = coord[4] - com123                    # vector from the plane to atom4
         dotp = numpy.dot(crs123, vec4)              # dot product
         if dotp < 0:
             # angle bigger than 90 degrees -> antiparallel -> "Sinister"
@@ -131,7 +130,11 @@ for r in residues:
 
         # Switch handedness?
         if args.s and len(label) > c and (handedness[-1] != label[c]):
-            atoms[3].position = atoms[3].position - 2*vec4
+            # move fourth atom
+            atoms[4].position = coord[4] - 2*vec4           
+            # move chiral center
+            atoms[0].position = coord[0] - 2*(coord[0] - com123)
+
             print("Switching {0}. chiral center in {1} to {2}".format(str(c+1), resname+str(r.id), label[c]))
 
     if not (args.s):
