@@ -162,7 +162,7 @@ main() {
     $task  >"$task"".log" 2> "$task""2.log"
   done
 
-  #wait
+  wait
   echo -e "All tasks completed."
 
 }
@@ -338,20 +338,24 @@ potential() {
   mkdir -p $workdir
   cd $workdir
 
-  # I have a different version of GROMACS for using g_H_potential
   binsize=0.05
-  # Reference group
-  ref_group="Lipids"
 
+  # Reference group
+  ref_group="Lipids" 
+
+  # groups which include water
+  groups_water=("Water" "System")
+
+  # buil list of groups which do not include water
   groups_nw=()
   group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
-      groups_nw+=$g
+      groups_nw+=("$g")
     fi
   done
-  groups_water=("Water" "System")
 
+  # calculations using trajectories WITHOUT water
   for group in ${groups_nw[@]}
   do
     mkdir $group
@@ -367,6 +371,7 @@ potential() {
 
   done
 
+  # calculations using trajectories WITH water
   for group in ${groups_water[@]}
   do
     mkdir $group
@@ -448,7 +453,7 @@ mindist() {
   group_list=(HDL Protein Lipids Monolayer CO CHO POPC DPPC POPC_Protein DPPC_Protein)
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
-      ref_groups+=$g
+      ref_groups+=("$g")
     fi
   done
 
@@ -495,7 +500,7 @@ sas() {
   group_list=(CO CHO POPC DPPC Protein Monolayer Lipids HDL)
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
-      groups+=$g
+      groups+=("$g")
     fi
   done
 
