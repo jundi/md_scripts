@@ -495,7 +495,15 @@ sas() {
   mkdir -p $workdir
   cd $workdir
 
-  ref_group="HDL"
+  # reference group is whole HDL particle or lipid droplet (if there is no
+  # protein at all)
+  if [[ $(grep " HDL " $index) ]]; then
+    ref_group="HDL"
+  else
+    ref_group="Lipids"
+  fi
+
+  # target groups
   groups=()
   group_list=(CO CHO POPC DPPC Protein Monolayer Lipids HDL)
   for g in ${group_list[@]}; do
@@ -505,6 +513,7 @@ sas() {
   done
 
   for group in  ${groups[@]}; do
+
 
     # g_sas
     echo "$ref_group $group" | g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt & 
