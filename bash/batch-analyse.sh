@@ -230,7 +230,7 @@ rms() {
 
   ref_group="Lipids"
   groups=""
-  grouplist=("CO" "CHO" "POPC" "DPPC" "Protein" "Monolayer" "Lipids" "HDL")
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "Monolayer" "Lipids" "HDL")
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
       groups="${groups} ${g}"
