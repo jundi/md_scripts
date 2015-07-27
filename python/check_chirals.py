@@ -24,17 +24,17 @@ atomdict["LBPA33"] = ["C2", "OC2", "C1", "C3", "H2A", "C2'", "OC2'", "C1'", "C3'
 
 ### PARSE ARGUMENTS
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("-c", help='Coordinate file')
+parser.add_argument("-c", help='''Coordinate file. Any format supported by
+        MDAnalysis (http://www.mdanalysis.org/) should work.''')
 parser.add_argument("-a", help='''Names of chiral center atom and atoms bound
-                                  to the chiral center (in order of priority).
-                                  If there is n chiral centers, 4n atoms 
-                                  should be given. If only one argument is 
-                                  given, some of the hard coded lists are
-                                  used.''',
-                                  nargs='+')
+        to the chiral center (in order of priority).  If there is n chiral
+        centers, 4n atoms should be given. If only one argument is given, some
+        of the hard code lists are used.''', nargs='+')
 parser.add_argument("-r", help='Resname of the molecule to be checked.')
 parser.add_argument("-l", help='Show hard coded atom lists.', action='store_true')
-parser.add_argument("-s", help='Set configuration to R/S.', nargs='+')
+parser.add_argument("-s", help='''Set configuration to R or S. This option
+        takes as many arguments as there is chiral centers in the molecule.''',
+nargs='+', choices=['R', 'S'])
 parser.add_argument("-o", help='Output file (if using -s)')
 args = parser.parse_args()
 
@@ -65,10 +65,10 @@ if args.a:
             atomnames = atomdict[args.a[0]]
             print("Using atoms: " + ", ".join(atomnames))
         else:
-            sys.exit("Atom list {0} is not known.".format(args.a[0]))
+            sys.exit("error: Atom list {0} is not known.".format(args.a[0]))
 
     elif len(args.a) % 5 > 0:
-        sys.exit("Wrong number of atoms.")
+        sys.exit("error: Wrong number of atoms.")
     else:
         atomnames = args.a
 else:
@@ -77,15 +77,18 @@ else:
 
 # set list of labels
 if args.s:
-    if len(args.s) > (len(atomnames) / 5):
-        sys.exit("Too many arguments for -s.")
+    if len(args.s) != (len(atomnames) / 5):
+        sys.exit("error: The number of arguments for -s should be equal to number of chiral centers in the molecule.")
     else:
         label = args.s
+    if not (args.o):
+        sys.exit("error: No output file given.")
+
 
 # set output file
 if args.o:
     if os.path.exists(args.o):
-        exit("File {} already exists".format(args.o))
+        exit("error: File {} already exists".format(args.o))
     else:
         outputfile = args.o
 
