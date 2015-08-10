@@ -9,9 +9,6 @@ prefix='7BP_'
 hours='72'
 # The batch script to be used. 
 batchscript='batch-parallel-taito.sh'   
-# Check if there is already a job running, and start new job after it has
-# finished.
-deps='yes' # yes|no
 # List of workdirs.
 dirs=("n3.6028" "n3.6991" "n3.8008" "n3.8999") 
 
@@ -21,17 +18,23 @@ dirs=("n3.6028" "n3.6991" "n3.8008" "n3.8999")
 cmds=()
 for d in ${dirs[@]}; do
 
-  # dependency flag
-  if [[ $deps == "yes" ]];then
-    jobid=$(squeue -u $USER -o "%i %j " | grep "${prefix}${d} " | cut -d " " -f 1)
-    if [[ -n $jobid ]]; then
-      dependency="-d afterok:${jobid} "
-    else 
-      dependency=""
+  workdir=$(readlink -f $d)
+  lastjobid="0"
+  dependency=""
+
+  # check if there is job running in this directory.
+  while read rid rdir; do
+
+    rdir=$(readlink -f $rdir)
+    if [[ $workdir == $rdir ]]; then
+      echo "There is a job already running in $d."
+      if [[ $rid -gt $lastjobid ]]; then
+        dependency="-d afterok:${rid} "
+      fi
     fi
-  else
-    dependency=""
-  fi
+
+  done < <(squeue -u $USER -o "%i %Z")
+
 
   # build command
   cmd="sbatch -D ${d} -t ${hours}:00:00 -J ${prefix}${d} ${dependency}${batchscript} ${hours}"
