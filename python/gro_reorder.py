@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''
-Reorder atoms in Gromacs coorfinate file (.gro).
+Reorder atoms in Gromacs coordinate file (.gro).
 '''
 
 import argparse
@@ -9,10 +9,10 @@ import argparse
 
 # parse arguments
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("-i", help='Input (.gro)')
-parser.add_argument("-o", help='Output (.gro)')
-parser.add_argument("-l", help='File which contains atom numbers in new order (one atom per line)')
-parser.add_argument("-r", help='Resname')
+parser.add_argument("-i", help='Input (.gro)', required=True)
+parser.add_argument("-o", help='Output (.gro)', required=True)
+parser.add_argument("-l", help='File which contains atom numbers in new order (one atom per line)', nargs='+', required=True)
+parser.add_argument("-r", help='Resname', nargs='+', required=True)
 args = parser.parse_args()
 
 if args.i:
@@ -20,17 +20,24 @@ if args.i:
 if args.o:
     output_gro = args.o
 if args.l:
-    order_file = args.l
+    order_files = args.l
 if args.r:
-    resname = args.r
+    resnames = args.r
+
+# check arguments
+if len(resnames) != len(order_files):
+    exit('Number of resnames is not equal to number of order-files!')
 
 
 
 # the atoms from old gro-file will written to new file in this order:
-order=[]
-with open(order_file, 'r') as order_stream:
-    for line in order_stream:
-        order.append(int(line.split()[0]))
+orders=[]
+for order_file in order_files:
+    order=[]
+    with open(order_file, 'r') as order_stream:
+        for line in order_stream:
+            order.append(int(line.split()[0]))
+    orders.append(order)
 
 
 
@@ -56,6 +63,7 @@ while line != '':
     if nextresnum != resnum:
         # Check that the amount of atoms is correct
         if len(atoms) == len(order):
+            print('Reordered '+str(resnum)+resname)
             for n in order:
                 newgro.write(atoms[n-1])
 
@@ -66,9 +74,11 @@ while line != '':
 
 
     # If this atom is part of a residue which is to be reordered, we add it to
-    # list.  If its, not it will written to the file.
-    if nextresname == resname and nextresnum.isdigit():
+    # list.  If its not, it will written to the file.
+    if nextresname in resnames and nextresnum.isdigit():
         atoms.append(line)
+        resname=nextresname
+        order=orders[resnames.index(resname)]
     else:
         newgro.write(line)
 
