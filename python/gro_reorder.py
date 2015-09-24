@@ -65,7 +65,7 @@ while line != '':
         resnum=nextresnum
 
 
-    # If this atom is part of aresidue which is to be reordered, we add it to
+    # If this atom is part of a residue which is to be reordered, we add it to
     # list.  If its, not it will written to the file.
     if nextresname == resname and nextresnum.isdigit():
         atoms.append(line)
