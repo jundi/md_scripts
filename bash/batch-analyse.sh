@@ -406,11 +406,13 @@ sorient() {
   # water group
   group="Water"
 
-  # Calculate sorient for 0.1nm slices
-  rstep=0.1
+  # Calculate sorient for 0.3nm slices
+  rstep=0.3
   rmin=3
   rmax=$(echo "$rmin+$rstep" | bc -l)
   rmaxmax=7
+  cbin=0.05
+  rbin=0.05
 
   while [[ $(echo "$rmax < $rmaxmax" | bc -l) == 1 ]]; do # bash can't compare floats...
 
@@ -419,7 +421,7 @@ sorient() {
     cd "$rmin-$rmax"
 
     # g_sorient
-    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -com -rmin $rmin -rmax $rmax -dt $dt &
+    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt &
 
     # wait until other jobs finish
     waitjobs
