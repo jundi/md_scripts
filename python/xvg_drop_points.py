@@ -1,6 +1,6 @@
 #!/bin/python
 #
-# Reads scales xvg-plots
+# Get datapoints where remainder of x divided by n is zero (x%n == 0).
 #
 
 import argparse
@@ -12,8 +12,7 @@ import numpy as np
 parser = argparse.ArgumentParser()
 parser.add_argument('-f', required=True)
 parser.add_argument('-o')
-parser.add_argument('-c', help="column")
-parser.add_argument('-n', help="every nth point will be saved")
+parser.add_argument('-n', help="divisor")
 
 args = parser.parse_args()
 infile_name = args.f 
@@ -21,15 +20,10 @@ if args.o:
     outfile_name = args.o
 else:
     outfile_name = '.'.join(infile_name.split('.')[:-1]) + '_droppoints' + '.' + infile_name.split('.')[-1]
-if args.c:
-    col = int(args.c)
-else:
-    col = 2
 if args.n:
     n = int(args.n)
 else:
     n = 10
-
 
 
 ### read file
@@ -44,17 +38,16 @@ with open(infile_name,'r') as infile:
            data.append(points)
 
 
-### set some points to zero
+### find points to be printed
 data = np.array(data) 
-for i in range(n-1):
-    data[i::n,col] = 0
+new_data = data[data[:,0] % n == 0]
 
 
 ### write
 with open(outfile_name,'w') as outfile:
     for line in new_lines:
         outfile.write(line)
-    for row in data:
+    for row in new_data:
         line=''
         for n in row:
             line=line + str('%11e' % n) + ' '
