@@ -30,6 +30,7 @@ for d in ${dirs[@]}; do
       echo "There is a job already running in $d."
       if [[ $rid -gt $lastjobid ]]; then
         dependency="-d afterok:${rid} "
+        lastjobid=$rid
       fi
     fi
 
