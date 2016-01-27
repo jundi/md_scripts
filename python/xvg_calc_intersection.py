@@ -42,7 +42,7 @@ if not (len(filename1) == len(filename2)):
 
 
 ### Define functions
-def get_zerocrossings(filename1,predicted,filename2):
+def get_intersections(filename1,predicted,filename2):
     if filename2:
         # get files
         xvgfile1 = gromacs.formats.XVG(filename1).array
@@ -61,20 +61,23 @@ def get_zerocrossings(filename1,predicted,filename2):
     
     # find intersection
     y=y1-y2
-    zero_crossings = x[numpy.where(numpy.diff(numpy.sign(y)))[0]]
-    chosen_index=numpy.argmin(abs(zero_crossings-predicted))
-    print(filename1 + ':    ' + str(zero_crossings[chosen_index]) + '   ' + str(zero_crossings))
-    return zero_crossings[chosen_index]
+    intersections = x[numpy.where(numpy.diff(numpy.sign(y)))[0]]
+    intersections = intersections[intersections != x[0]]
+    intersections = intersections[intersections != x[-1]]
+    # Choose the intersection you were looking for
+    intersection = intersections[numpy.argmin(abs(intersections-predicted))]
+    print(filename1 + ':    ' + str(intersection) + '   ' + str(intersections))
+    return intersection
 
 
 ### Main program
 intersects=[]
 if args.f:
     for f in filename:
-        intersects.append(get_zerocrossings(f,predicted))
+        intersects.append(get_intersections(f,predicted))
 else: 
     for f1, f2 in zip(filename1, filename2):
-        intersects.append(get_zerocrossings(f1,predicted,f2))
+        intersects.append(get_intersections(f1,predicted,f2))
 intersects=numpy.array(intersects)
 
 print('')
