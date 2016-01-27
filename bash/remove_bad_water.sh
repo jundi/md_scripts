@@ -6,7 +6,7 @@
 ### defaults
 input="conf.gro"
 output="out.gro"
-structure="topol.tpr"
+structure=""
 index=""
 new_index="badwater.ndx"
 radius="0.5"
@@ -42,6 +42,10 @@ while [[ $# -gt 0 ]]; do
   esac
   shift       
 done
+
+if [[ -z "$structure" ]]; then
+  structure=$input
+fi
 
 
 ### create selection
