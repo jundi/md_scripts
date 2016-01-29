@@ -27,7 +27,7 @@ with open(filename,'r') as file:
         if line.startswith('#') or line.startswith('@'):
             continue
         else:
-           tail.append(line.split()[1])
+            tail.append(line.split()[1:])
 
 
 
@@ -41,7 +41,7 @@ if unsat_filename:
                 continue
             else:
                 atom=unsat_atoms[itr_a]
-                tail[int(atom)-2] = line.split()[1]
+                tail[int(atom)-2] = line.split()[1:]
                 itr_a = itr_a+1
 else:
     print("Tail is saturated.")
@@ -51,7 +51,7 @@ else:
 itr=2
 with open(output_filename,'w') as output:
     for t in tail:
-        words=[str(itr).rjust(15), t.rjust(15)]
-        line = "".join(words)
+        t_formatted = ''.join([x.rjust(15) for x in t])
+        line = '{:>5} {}'.format(str(itr), t_formatted)
         output.write(line + "\n")
         itr=itr+1
