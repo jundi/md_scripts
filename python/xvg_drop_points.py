@@ -6,7 +6,7 @@
 import argparse
 import sys
 import numpy as np
-
+import decimal as dec
 
 ### parse arguments
 parser = argparse.ArgumentParser()
@@ -21,10 +21,9 @@ if args.o:
 else:
     outfile_name = '.'.join(infile_name.split('.')[:-1]) + '_droppoints' + '.' + infile_name.split('.')[-1]
 if args.n:
-    n = int(args.n)
+    n = float(args.n)
 else:
     n = 10
-
 
 ### read file
 new_lines = []
@@ -32,24 +31,21 @@ data = []
 with open(infile_name,'r') as infile:
     for line in infile:
         if line.startswith('#') or line.startswith('@'):
-           new_lines.append(line)
+            new_lines.append(line)
         else:
-           points = [float(x) for x in line.split()]
-           data.append(points)
-
-
-### find points to be printed
-data = np.array(data) 
-new_data = data[data[:,0] % n == 0]
+            points = [float(x) for x in line.split()]
+            remainder = abs(points[0]%n)
+            if ((remainder < 1E-15) or (abs(remainder-n) < 1E-15)):
+                data.append(points)
 
 
 ### write
 with open(outfile_name,'w') as outfile:
     for line in new_lines:
         outfile.write(line)
-    for row in new_data:
+    for row in data:
         line=''
-        for n in row:
-            line=line + str('%11e' % n) + ' '
-
+        for i in row:
+            line=line + str('%11e' % i) + ' '
         outfile.write(line + '\n')
+
