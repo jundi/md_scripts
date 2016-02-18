@@ -35,7 +35,7 @@ with open(infile_name,'r') as infile:
         else:
             points = [float(x) for x in line.split()]
             remainder = abs(points[0]%n)
-            if ((remainder < 1E-15) or (abs(remainder-n) < 1E-15)):
+            if ((remainder < 1E-12) or (abs(remainder-n) < 1E-12)):
                 data.append(points)
 
 
