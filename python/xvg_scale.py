@@ -29,10 +29,10 @@ data = []
 with open(infile_name,'r') as infile:
     for line in infile:
         if line.startswith('#') or line.startswith('@'):
-           new_lines.append(line)
+            new_lines.append(line)
         else:
-           points = [float(x) for x in line.split()]
-           data.append(points)
+            points = [float(x) for x in line.split()]
+            data.append(points)
 
 
 ### scale
