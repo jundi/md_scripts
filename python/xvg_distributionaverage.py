@@ -18,6 +18,7 @@ file_names = args.f
 
 
 averages=np.array([])
+yvalues=np.array([])
 for file_name in file_names:
     ### read file
     new_lines = []
@@ -38,5 +39,14 @@ for file_name in file_names:
         print(avg)
     averages = np.append(averages, avg)
 
+    ### y-value at average
+    yvalue = data[np.argmin(abs(data[:,0]-avg)), 1]
+    if args.v:
+        print(yvalue)
+    yvalues = np.append(yvalues, yvalue)
+
+
+
 ### print
-print('mean: ' + str(averages.mean()) + ' +- ' +str(averages.std()))
+print('mean: ' + str(averages.mean()) + ' +- ' + str(averages.std()))
+print('y-value: ' + str(yvalues.mean()) + ' +- ' + str(yvalues.std()))

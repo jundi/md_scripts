@@ -1,6 +1,6 @@
 #!/bin/python
-#
-# Divides y1 and y2 with 4/3*pi*x^3.
+# 
+# Divides y with 4/3*pi*x^3.
 #
 
 import argparse
@@ -40,11 +40,10 @@ pi = np.pi
 # volume from x
 vol = 4/3*pi * ( np.power(data[:,0]+binwidth,3) - np.power(data[:,0],3) )
 
-# y1
-data[:,1] = data[:,1]/vol[:]
-# y2
-data[:,2] = data[:,2]/vol[:]
-
+# divide y with vol
+columns = data.shape[1]
+for i in range(1,columns):
+    data[:,i] = data[:,i]/vol[:]
 
 
 ### write

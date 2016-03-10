@@ -45,7 +45,7 @@ if args.v:
     print('scale factor: ' + str(area))
 
 ### scale
-data[:,1] = data[:,1]/area
+data[:,1:] = data[:,1:]/area
 
 ### write
 with open(outfile_name,'w') as outfile:
