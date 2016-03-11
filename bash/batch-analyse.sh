@@ -208,11 +208,16 @@ rdf() {
   done
   ng=$(echo $groups | wc -w)
 
-  # g_rdf
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng $ng  -dt $dt -cn & 
-
+  # rdf
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg & 
   # wait until other jobs finish
   waitjobs
+
+  # nonorm
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg & 
+  # wait until other jobs finish
+  waitjobs
+
 
   cd ..
 }
