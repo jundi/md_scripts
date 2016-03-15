@@ -169,24 +169,6 @@ main() {
 
 
 
-###############
-# job limiter #
-###############
-waitjobs() {
-
-  jobnum=$(ps -o pgid | grep $jobid | wc -l)
-  let jobnum=$jobnum-5
-
-  while [[ $jobnum -ge $maxjobs ]]
-  do
-    sleep 10
-
-    jobnum=$(ps -o pgid | grep $jobid | wc -l)
-    let jobnum=$jobnum-5
-
-  done
-}
-
 
 
 #######
@@ -210,15 +192,10 @@ rdf() {
   ng=$(echo $groups | wc -w)
 
   # rdf
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg #& 
-  # wait until other jobs finish
-  #waitjobs
+  echo "$ref_group $groups" | sem -j $maxjobs g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg 
 
   # nonorm
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg #& 
-  # wait until other jobs finish
-  #waitjobs
-
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg 
 
   cd ..
 }
@@ -245,10 +222,7 @@ rms() {
   ng=$(echo $groups | wc -w)
 
   # g_rms
-  echo "$ref_group $groups" | g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng $ng -what rmsd  -dt $dt & 
-
-  # wait until other jobs finish
-  waitjobs
+  echo "$ref_group $groups" | g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng $ng -what rmsd  -dt $dt 
 
   cd ..
 }
@@ -324,10 +298,8 @@ order() {
     # G_ORDER
     # Reference group
     ref_group="Lipids"
-    echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat &
+    echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
 
-    # wait until other jobs finish
-    waitjobs
   done
 
   cd ..
@@ -364,15 +336,13 @@ potential() {
   # calculations using trajectories WITHOUT water
   for group in ${groups_nw[@]}
   do
-    mkdir $group
+    mkdir -p $group
     cd $group
-    select="com of group $ref_group pbc; group $group"
+    select="\"com of group $ref_group pbc; group $group\""
 
     # g_H_potential
-    g_H_potential -f $traj_nw -n $index_nw -s $structure_nw  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt &
+    sem -j $maxjobs g_H_potential -f $traj_nw -n $index_nw -s $structure_nw  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt 
 
-    # wait until other jobs finish
-    waitjobs
     cd ..
 
   done
@@ -382,13 +352,11 @@ potential() {
   do
     mkdir $group
     cd $group
-    select="com of group $ref_group pbc; group $group"
+    select="\"com of group $ref_group pbc; group $group\""
 
     # g_H_potential
-    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt #&
+    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt 
 
-    # wait until other jobs finish
-    #waitjobs
     cd ..
 
   done
@@ -427,11 +395,7 @@ sorient() {
     cd "$rmin-$rmax"
 
     # g_sorient
-    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt #&
-
-    # wait until other jobs finish
-    #waitjobs
-
+    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
 
     #next slice:
     rmin=$rmax
@@ -470,10 +434,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist &
-
-    # wait until other jobs finish
-    waitjobs
+    echo "$ref_group $groups" | sem -j $maxjobs g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
 
   done
 
@@ -481,10 +442,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist #&
-
-    # wait until other jobs finish
-    #waitjobs
+    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
 
   done
 
@@ -524,10 +482,7 @@ sas() {
 
 
     # g_sas
-    echo "$ref_group $group" | g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt & 
-
-    # wait until other jobs finish
-    waitjobs
+    echo "$ref_group $group" | g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
 
   done
 
@@ -552,10 +507,8 @@ dssp() {
     cd $chain
 
     # do_dssp
-    echo "$chain" | do_dssp -f $traj_nw -n $index_nw -s $structure_nw -dt $dt & 
+    echo "$chain" | do_dssp -f $traj_nw -n $index_nw -s $structure_nw -dt $dt 
 
-    # wait until other jobs finish
-    waitjobs
 
     cd ..
 
@@ -579,10 +532,8 @@ gyrate() {
 
   for group in ${groups[@]}; do
 
-    echo $group | g_gyrate -f $traj_nw -n $index_nw -s $structure_nw -dt $dt -o ${group}.xvg &
+    echo $group | sem -j $maxjobs g_gyrate -f $traj_nw -n $index_nw -s $structure_nw -dt $dt -o ${group}.xvg
 
-    # wait until other jobs finish
-    waitjobs
   done
 
   cd ..
