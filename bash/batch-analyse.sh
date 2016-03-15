@@ -195,6 +195,7 @@ waitjobs() {
 rdf() {
 
   workdir=g_rdf
+  bin=0.02
   mkdir -p $workdir
   cd $workdir
 
@@ -209,14 +210,14 @@ rdf() {
   ng=$(echo $groups | wc -w)
 
   # rdf
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg & 
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg #& 
   # wait until other jobs finish
-  waitjobs
+  #waitjobs
 
   # nonorm
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg & 
+  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg #& 
   # wait until other jobs finish
-  waitjobs
+  #waitjobs
 
 
   cd ..
@@ -343,7 +344,7 @@ potential() {
   mkdir -p $workdir
   cd $workdir
 
-  binsize=0.05
+  binsize=0.001
 
   # Reference group
   ref_group="Lipids" 
@@ -384,10 +385,10 @@ potential() {
     select="com of group $ref_group pbc; group $group"
 
     # g_H_potential
-    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt &
+    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt #&
 
     # wait until other jobs finish
-    waitjobs
+    #waitjobs
     cd ..
 
   done
@@ -426,10 +427,10 @@ sorient() {
     cd "$rmin-$rmax"
 
     # g_sorient
-    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt &
+    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt #&
 
     # wait until other jobs finish
-    waitjobs
+    #waitjobs
 
 
     #next slice:
@@ -469,7 +470,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+    echo "$ref_group $groups" | g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist &
 
     # wait until other jobs finish
     waitjobs
@@ -480,10 +481,10 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "$ref_group-mindist.xvg" -on "$ref_group-numcount.xvg" -d $dist &
+    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist #&
 
     # wait until other jobs finish
-    waitjobs
+    #waitjobs
 
   done
 
