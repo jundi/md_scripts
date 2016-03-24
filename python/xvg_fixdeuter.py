@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 
 '''Combines saturated and unsaturated deuter.xvg -plots, and fixes atom
-numbering.'''
+numbering.
+
+For example POPC oleyl tail:
+xvg_fixdeuter -f saturated.xvg -u unsaturated.xvg -a 9 10 -o fidex.xvg
+'''
+
 
 import argparse
 

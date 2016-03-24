@@ -17,6 +17,7 @@ Options: \n
 \t-b \t first frame to use (ps) \n
 \t-dt \t skip frames \n
 \t-j \t max parallel jobs \n
+\t-jn \t max parallel jobs for analysis without water\n
 \n
 Tasks: \n
 \tdssp \n
@@ -67,7 +68,8 @@ index_nw=""
 # other parameters
 begin=0   # first timestep to be used
 dt=-1     # skip frames
-maxjobs=2 # max parallel jobs
+maxjobs_nw=4 # max parallel jobs
+maxjobs=1 # max parallel jobs
 
 
 ####################
@@ -126,6 +128,10 @@ while [[ $# -gt 0 ]]; do
       maxjobs="$2"
       shift
       ;;
+    -jn)
+      maxjobs_nw="$2"
+      shift
+      ;;
     rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate)
       tasks+=("$1")
       ;;
@@ -162,7 +168,7 @@ main() {
     $task  >"$task"".log" 2> "$task""2.log"
   done
 
-  wait
+  sem --wait
   echo -e "All tasks completed."
 
 }
@@ -195,7 +201,7 @@ rdf() {
   echo "$ref_group $groups" | sem -j $maxjobs g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg 
 
   # nonorm
-  echo "$ref_group $groups" | g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg 
+  echo "$ref_group $groups" | sem -j $maxjobs g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn nonorm_cn.xvg -o nonorm.xvg 
 
   cd ..
 }
@@ -222,7 +228,7 @@ rms() {
   ng=$(echo $groups | wc -w)
 
   # g_rms
-  echo "$ref_group $groups" | g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng $ng -what rmsd  -dt $dt 
+  echo "$ref_group $groups" | sem -j $maxjobs_nw g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng $ng -what rmsd  -dt $dt 
 
   cd ..
 }
@@ -298,7 +304,7 @@ order() {
     # G_ORDER
     # Reference group
     ref_group="Lipids"
-    echo "$ref_group" | g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
+    echo "$ref_group" | sem -j $maxjobs_nw g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
 
   done
 
@@ -324,7 +330,7 @@ potential() {
   # groups which include water
   groups_water=("Water" "System")
 
-  # buil list of groups which do not include water
+  # build list of groups which do not include water
   groups_nw=()
   group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
   for g in ${group_list[@]}; do
@@ -339,9 +345,10 @@ potential() {
     mkdir -p $group
     cd $group
     select="\"com of group $ref_group pbc; group $group\""
+      echo $group
 
     # g_H_potential
-    sem -j $maxjobs g_H_potential -f $traj_nw -n $index_nw -s $structure_nw  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt 
+    sem -j $maxjobs_nw g_H_potential -f $traj_nw -n $index_nw -s $structure_nw  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt 
 
     cd ..
 
@@ -350,12 +357,12 @@ potential() {
   # calculations using trajectories WITH water
   for group in ${groups_water[@]}
   do
-    mkdir $group
+    mkdir -p $group
     cd $group
     select="\"com of group $ref_group pbc; group $group\""
 
     # g_H_potential
-    g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt 
+    sem -j $maxjobs g_H_potential -f $traj -n $index -s $structure  -b $begin -geo Radial -bin_size $binsize -select "$select" -dt $dt 
 
     cd ..
 
@@ -395,7 +402,7 @@ sorient() {
     cd "$rmin-$rmax"
 
     # g_sorient
-    echo "$ref_group $group" | g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
+    echo "$ref_group $group" | sem -j $maxjobs g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
 
     #next slice:
     rmin=$rmax
@@ -434,7 +441,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | sem -j $maxjobs g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
+    echo "$ref_group $groups" | sem -j $maxjobs_nw g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
 
   done
 
@@ -442,7 +449,7 @@ mindist() {
   for ref_group in ${ref_groups[@]}; do
 
     # g_mindist
-    echo "$ref_group $groups" | g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
+    echo "$ref_group $groups" | sem -j $maxjobs g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
 
   done
 
@@ -482,7 +489,7 @@ sas() {
 
 
     # g_sas
-    echo "$ref_group $group" | g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
+    echo "$ref_group $group" | sem -j $maxjobs_nw g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
 
   done
 
@@ -500,15 +507,14 @@ dssp() {
   mkdir -p $workdir
   cd $workdir
 
-  chains=(Chain_1 Chain_2 Chain_3 Chain_4)
+  chains=(Chain_1 Chain_2 Chain_3 Chain_4 Protein)
   for chain in ${chains[@]}; do
 
     mkdir -p $chain
     cd $chain
 
     # do_dssp
-    echo "$chain" | do_dssp -f $traj_nw -n $index_nw -s $structure_nw -dt $dt 
-
+    echo "$chain" | sem -j $maxjobs_nw do_dssp -f $traj_nw -n $index_nw -s $structure_nw -dt $dt 
 
     cd ..
 
@@ -532,7 +538,7 @@ gyrate() {
 
   for group in ${groups[@]}; do
 
-    echo $group | sem -j $maxjobs g_gyrate -f $traj_nw -n $index_nw -s $structure_nw -dt $dt -o ${group}.xvg
+    echo $group | sem -j $maxjobs_nw g_gyrate -f $traj_nw -n $index_nw -s $structure_nw -dt $dt -o ${group}.xvg
 
   done
 
