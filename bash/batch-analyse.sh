@@ -57,9 +57,9 @@ Index file should contain these groups: \n
 # defaults #
 ############
 # input files
-traj=$(readlink -f traj.xtc)
-structure=$(readlink -f topol.tpr)
-index=$(readlink -f index.ndx)
+traj=""
+structure=""
+index=""
 # input files without water (used when water molecules are not needed for
 # analysis)
 traj_nw=""
@@ -428,30 +428,37 @@ mindist() {
   cd $workdir
 
   dist=0.35
-  ref_groups=()
   group_list=(HDL Protein Lipids Monolayer CO CHO POPC DPPC POPC_Protein DPPC_Protein)
+
+  # Ion contacts
+  ref_groups=()
   for g in ${group_list[@]}; do
-    if [[ $(grep " $g " $index) ]]; then
+    if [[ $(grep " $g " $index_nw) ]]; then
       ref_groups+=("$g")
     fi
   done
+  if [[ -n $traj_nw ]]; then
+    groups="NA CL"
+    for ref_group in ${ref_groups[@]}; do
+      # g_mindist
+      echo "$ref_group $groups" | sem -j $maxjobs_nw g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
+    done
+  fi
 
-
-  groups="NA CL"
-  for ref_group in ${ref_groups[@]}; do
-
-    # g_mindist
-    echo "$ref_group $groups" | sem -j $maxjobs_nw g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
-
+  # Water contacts
+  ref_groups=()
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index_nw) ]]; then
+      ref_groups+=("$g")
+    fi
   done
-
-  groups="Water"
-  for ref_group in ${ref_groups[@]}; do
-
-    # g_mindist
-    echo "$ref_group $groups" | sem -j $maxjobs g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
-
-  done
+  if [[ -n $traj ]]; then
+    groups="Water"
+    for ref_group in ${ref_groups[@]}; do
+      # g_mindist
+      echo "$ref_group $groups" | sem -j $maxjobs g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
+    done
+  fi
 
 
   cd ..
@@ -486,11 +493,8 @@ sas() {
   done
 
   for group in  ${groups[@]}; do
-
-
     # g_sas
     echo "$ref_group $group" | sem -j $maxjobs_nw g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
-
   done
 
   cd ..
