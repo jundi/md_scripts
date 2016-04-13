@@ -25,6 +25,7 @@ Tasks: \n
 \torder \n
 \tmindist (water needed)  \n
 \tpotential (water needed) \n
+\tpotential_blocks (water needed) \n
 \trdf \n
 \trms \n
 \tsas \n
@@ -76,7 +77,6 @@ maxjobs=1 # max parallel jobs
 # global variables #
 ####################
 tasks=()       # array to store tasks
-jobid=$BASHPID # jobid for jobcontrol
 
 
 ####################
@@ -132,7 +132,7 @@ while [[ $# -gt 0 ]]; do
       maxjobs_nw="$2"
       shift
       ;;
-    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate)
+    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate|potential_blocks)
       tasks+=("$1")
       ;;
     *)
@@ -366,6 +366,76 @@ potential() {
 
     cd ..
 
+  done
+
+  cd ..
+}
+
+
+
+##################################
+# ELECTROSTATIC POTENTIAL BLOCKS #
+##################################
+potential_blocks() {
+
+  workdir=g_H_potential_blocks
+  mkdir -p $workdir
+  cd $workdir
+
+  binsize=0.001
+  blocksize=100000 # 100 ns
+  lastframe=2000000 # 2000 ns
+
+  # Reference group
+  ref_group="Lipids" 
+
+  # groups which include water
+  groups_water=("Water" "System")
+
+  # build list of groups which do not include water
+  groups_nw=()
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      groups_nw+=("$g")
+    fi
+  done
+
+
+  b=1
+  while [[ $b -lt $lastframe ]]; do
+    let e=${b}+${blocksize}-1
+    mkdir ${b}-${e}
+    cd ${b}-${e}
+
+    # calculations using trajectories WITHOUT water
+    for group in ${groups_nw[@]}
+    do
+      mkdir -p $group
+      cd $group
+      select="\"com of group $ref_group pbc; group $group\""
+      echo $group
+
+      # g_H_potential
+      sem -j $maxjobs_nw g_H_potential -f $traj_nw -n $index_nw -s $structure_nw  -b $b -e $e -geo Radial -bin_size $binsize -select "$select" -dt $dt 
+      
+      cd ..
+    done
+
+    # calculations using trajectories WITH water
+    for group in ${groups_water[@]}
+    do
+      mkdir -p $group
+      cd $group
+      select="\"com of group $ref_group pbc; group $group\""
+
+      # g_H_potential
+      sem -j $maxjobs g_H_potential -f $traj -n $index -s $structure  -b $b -e $e -geo Radial -bin_size $binsize -select "$select" -dt $dt 
+      cd ..
+    done
+
+    cd ..
+    let b=${b}+${blocksize}
   done
 
   cd ..
