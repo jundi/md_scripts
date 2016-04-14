@@ -160,7 +160,6 @@ if [[ -z $traj_nw ]]; then
   traj_nw=$traj
 fi
 if [[ -z $structure_nw ]]; then
-
   structure_nw=$structure
 fi
 if [[ -z $index_nw ]]; then
@@ -301,7 +300,7 @@ order() {
 	;;
     esac
 
-    if [[ ! $(grep " $resname " $index) ]]; then
+    if [[ ! $(grep " $resname " $index_nw) ]]; then
       continue
     fi
 
@@ -376,7 +375,8 @@ order_blocks() {
 	;;
     esac
 
-    if [[ ! $(grep " $resname " $index) ]]; then
+
+    if [[ ! $(grep " $resname " $index_nw) ]]; then
       continue
     fi
 
@@ -386,7 +386,6 @@ order_blocks() {
     for atom in ${tail[@]}; do
       select="$select name $atom and resname $resname;"
     done
-
     tail_ndx="${tn}.ndx"
     g_select -s $structure_nw -select "$select" -on $tail_ndx
 
@@ -599,7 +598,7 @@ sorient_blocks() {
     cd ${b}-${e}
 
     # g_sorient
-    echo "$ref_group $group" | sem -j $maxjobs g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
+    echo "$ref_group $group" | sem -j $maxjobs g_sorient -f $traj -n $index -s $structure -b $b -e $e -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
 
     cd ..
     let b=${b}+${blocksize}
