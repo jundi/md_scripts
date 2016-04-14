@@ -15,6 +15,8 @@ Options: \n
 \t-f \t traj.xtc \n
 \t-fn \t traj_nowater.xtc \n
 \t-b \t first frame to use (ps) \n
+\t-e \t last frame to use (ps) \n
+\t-r \t HDL radius \n
 \t-dt \t skip frames \n
 \t-j \t max parallel jobs \n
 \t-jn \t max parallel jobs for analysis without water\n
@@ -23,6 +25,7 @@ Tasks: \n
 \tdssp \n
 \tgyrate \n
 \torder \n
+\torder_blocks \n
 \tmindist (water needed)  \n
 \tpotential (water needed) \n
 \tpotential_blocks (water needed) \n
@@ -30,6 +33,7 @@ Tasks: \n
 \trms \n
 \tsas \n
 \tsorient (water needed) \n
+\tsorient_blocks (water needed) \n
 \n
 Index file should contain these groups: \n
 \tSystem \n
@@ -120,6 +124,14 @@ while [[ $# -gt 0 ]]; do
       begin="$2"
       shift
       ;;
+    -e)
+      lastframe="$2"
+      shift
+      ;;
+    -r)
+      radius="$2"
+      shift
+      ;;
     -dt)
       dt="$2"
       shift
@@ -132,7 +144,7 @@ while [[ $# -gt 0 ]]; do
       maxjobs_nw="$2"
       shift
       ;;
-    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate|potential_blocks)
+    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate|potential_blocks|sorient_blocks|order_blocks)
       tasks+=("$1")
       ;;
     *)
@@ -183,19 +195,21 @@ main() {
 rdf() {
 
   workdir=g_rdf
-  bin=0.02
   mkdir -p $workdir
   cd $workdir
 
+  bin=0.02
   ref_group="Lipids"
-  groups=""
   group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "Water" "POPC_P" "POPC_N" "DPPC_P" "DPPC_N")
+
+  # Build group list
+  groups=""
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
       groups="${groups} ${g}"
     fi
   done
-  ng=$(echo $groups | wc -w)
+  ng=$(echo $groups | wc -w) # number of groups
 
   # rdf
   echo "$ref_group $groups" | sem -j $maxjobs g_rdf -f $traj -n $index -s $structure  -b $begin -bin $bin -rdf atom -com -ng $ng  -dt $dt -cn rdf_cn.xvg -o rdf.xvg 
@@ -218,14 +232,16 @@ rms() {
   cd $workdir
 
   ref_group="Lipids"
-  groups=""
   group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "Monolayer" "Lipids" "HDL")
+
+  # Build group list
+  groups=""
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
       groups="${groups} ${g}"
     fi
   done
-  ng=$(echo $groups | wc -w)
+  ng=$(echo $groups | wc -w) # number of groups
 
   # g_rms
   echo "$ref_group $groups" | sem -j $maxjobs_nw g_rms -f $traj_nw -n $index_nw -s $structure_nw -ng $ng -what rmsd  -dt $dt 
@@ -238,14 +254,88 @@ rms() {
 ###################
 # ORDER PARAMETER #
 ###################
-
-
 order() {
 
   workdir=g_order
   mkdir -p $workdir
   cd $workdir
 
+  tailnames=("POPC_SN1" "POPC_SN2" "POPC_SN2_unsat" "DPPC_SN1" "DPPC_SN2")
+  ref_group="Lipids"
+
+  for tn in ${tailnames[@]}; do
+
+    # TAIL ATOMS
+    # For some reason (bug?) one dummy group has to be added to the index file
+    # (when using radial-option).  Otherwise order parameter of last atom will
+    # be missing.
+    case $tn in
+      "POPC_SN1")
+	tail=(C36 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C51 C52 C52)
+	resname=POPC
+	unsat="-nounsat"
+	;;
+      "POPC_SN2")
+	tail=(C15 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C31 C32 C33 C33)
+	resname=POPC
+	unsat="-nounsat"
+	;;
+      "POPC_SN2_unsat")
+	tail=(C23 C24 C25 C26 C26)
+	resname=POPC
+	unsat="-unsat"
+	;;
+      "DPPC_SN1")
+	tail=(C34 C36 C37 C38 C39 C40 C41 C42 C43 C44 C45 C46 C47 C48 C49 C50 C50) 
+	resname=DPPC
+	unsat="-nounsat"
+	;;
+      "DPPC_SN2")
+	tail=(C15 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C31 C31) 
+	resname=DPPC
+	unsat="-nounsat"
+	;;
+      *)
+	echo "ERROR: Unknown tail"
+	continue
+	;;
+    esac
+
+    if [[ ! $(grep " $resname " $index) ]]; then
+      continue
+    fi
+
+
+    # BUILD INDEX FILE
+    select=""
+    for atom in ${tail[@]}; do
+      select="$select name $atom and resname $resname;"
+    done
+
+    tail_ndx="${tn}.ndx"
+    g_select -s $structure_nw -select "$select" -on $tail_ndx
+
+
+    # g_order
+    echo "$ref_group" | sem -j $maxjobs_nw g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
+
+  done
+
+  cd ..
+}
+
+
+##########################
+# ORDER PARAMETER BLOCKS #
+##########################
+order_blocks() {
+
+  workdir=g_order_blocks
+  mkdir -p $workdir
+  cd $workdir
+
+  blocksize=100000 # 100 ns
+  ref_group="Lipids" # Reference group
 
   tailnames=("POPC_SN1" "POPC_SN2" "POPC_SN2_unsat" "DPPC_SN1" "DPPC_SN2")
   for tn in ${tailnames[@]}; do
@@ -301,10 +391,18 @@ order() {
     g_select -s $structure_nw -select "$select" -on $tail_ndx
 
 
-    # G_ORDER
-    # Reference group
-    ref_group="Lipids"
-    echo "$ref_group" | sem -j $maxjobs_nw g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $begin -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
+    b=1
+    while [[ $b -lt $lastframe ]]; do
+      let e=${b}+${blocksize}-1
+      mkdir -p ${b}-${e}
+      cd ${b}-${e}
+
+      # g_order
+      echo "$ref_group" | sem -j $maxjobs_nw g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $b -e $e -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
+
+      cd ..
+      let b=${b}+${blocksize}
+    done
 
   done
 
@@ -323,16 +421,12 @@ potential() {
   cd $workdir
 
   binsize=0.001
-
-  # Reference group
-  ref_group="Lipids" 
-
-  # groups which include water
-  groups_water=("Water" "System")
+  ref_group="Lipids" # Reference group
+  groups_water=("Water" "System") # groups which include water
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
 
   # build list of groups which do not include water
   groups_nw=()
-  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
       groups_nw+=("$g")
@@ -384,23 +478,17 @@ potential_blocks() {
 
   binsize=0.001
   blocksize=100000 # 100 ns
-  lastframe=2000000 # 2000 ns
-
-  # Reference group
-  ref_group="Lipids" 
-
-  # groups which include water
-  groups_water=("Water" "System")
+  ref_group="Lipids" # Reference group
+  groups_water=("Water" "System") # groups which include water
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
 
   # build list of groups which do not include water
   groups_nw=()
-  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_N" "POPC_P" "DPPC_N" "DPPC_P")
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
       groups_nw+=("$g")
     fi
   done
-
 
   b=1
   while [[ $b -lt $lastframe ]]; do
@@ -452,10 +540,8 @@ sorient() {
   mkdir -p $workdir
   cd $workdir
 
-  # Reference group
-  ref_group="Lipids"
-  # water group
-  group="Water"
+  ref_group="Lipids" # Reference group
+  group="Water" # water group
 
   # Calculate sorient for 0.3nm slices
   rstep=0.3
@@ -479,6 +565,44 @@ sorient() {
     rmax=$(echo "$rmin+$rstep" | bc -l)
     cd ..
 
+  done
+
+  cd ..
+
+}
+
+
+############################
+# WATER ORIENTATION BLOCKS #
+############################
+sorient_blocks() {
+
+  workdir=g_sorient_blocks
+  mkdir -p $workdir
+  cd $workdir
+
+  ref_group="Lipids" # Reference group
+  group="Water" # water group
+  blocksize=100000 # 100 ns
+
+  # Calculate sorient for 0.2nm slices
+  rstep=0.1
+  rmin=$(echo "$radius—$rstep" | bc -l)
+  rmax=$(echo "$radius+$rstep" | bc -l)
+  cbin=0.05
+  rbin=0.05
+
+  b=1
+  while [[ $b -lt $lastframe ]]; do
+    let e=${b}+${blocksize}-1
+    mkdir ${b}-${e}
+    cd ${b}-${e}
+
+    # g_sorient
+    echo "$ref_group $group" | sem -j $maxjobs g_sorient -f $traj -n $index -s $structure -b $begin -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
+
+    cd ..
+    let b=${b}+${blocksize}
   done
 
   cd ..
@@ -545,17 +669,11 @@ sas() {
   mkdir -p $workdir
   cd $workdir
 
-  # reference group is whole HDL particle or lipid droplet (if there is no
-  # protein at all)
-  if [[ $(grep " HDL " $index) ]]; then
-    ref_group="HDL"
-  else
-    ref_group="Lipids"
-  fi
-
-  # target groups
-  groups=()
   group_list=(CO CHO POPC DPPC Protein Monolayer Lipids HDL)
+  ref_group="HDL"
+
+  # Build target group list
+  groups=()
   for g in ${group_list[@]}; do
     if [[ $(grep " $g " $index) ]]; then
       groups+=("$g")
@@ -582,8 +700,8 @@ dssp() {
   cd $workdir
 
   chains=(Chain_1 Chain_2 Chain_3 Chain_4 Protein)
-  for chain in ${chains[@]}; do
 
+  for chain in ${chains[@]}; do
     mkdir -p $chain
     cd $chain
 
@@ -591,7 +709,6 @@ dssp() {
     echo "$chain" | sem -j $maxjobs_nw do_dssp -f $traj_nw -n $index_nw -s $structure_nw -dt $dt 
 
     cd ..
-
   done
 
   cd ..
@@ -611,9 +728,7 @@ gyrate() {
   groups=(CO Lipids HDL Protein)
 
   for group in ${groups[@]}; do
-
     echo $group | sem -j $maxjobs_nw g_gyrate -f $traj_nw -n $index_nw -s $structure_nw -dt $dt -o ${group}.xvg
-
   done
 
   cd ..
