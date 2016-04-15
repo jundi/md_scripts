@@ -397,7 +397,7 @@ order_blocks() {
       cd ${b}-${e}
 
       # g_order
-      echo "$ref_group" | sem -j $maxjobs_nw g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $b -e $e -n $tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
+      echo "$ref_group" | sem -j $maxjobs_nw g_order -f $traj_nw -nr $index_nw -s $structure_nw  -b $b -e $e -n ../$tail_ndx -radial -permolecule -o "order_$tn" -os "sliced_$tn" -dt $dt $unsat
 
       cd ..
       let b=${b}+${blocksize}
@@ -576,6 +576,16 @@ sorient() {
 ############################
 sorient_blocks() {
 
+  if ! [[  $lastframe ]]; then
+    echo "-e not defined"
+    return 2
+  fi
+
+  if ! [[  $radius ]]; then
+    echo "-r not defined"
+    return 2
+  fi
+
   workdir=g_sorient_blocks
   mkdir -p $workdir
   cd $workdir
@@ -586,7 +596,7 @@ sorient_blocks() {
 
   # Calculate sorient for 0.2nm slices
   rstep=0.1
-  rmin=$(echo "$radius—$rstep" | bc -l)
+  rmin=$(echo "$radius-$rstep" | bc -l)
   rmax=$(echo "$radius+$rstep" | bc -l)
   cbin=0.05
   rbin=0.05
@@ -594,7 +604,7 @@ sorient_blocks() {
   b=1
   while [[ $b -lt $lastframe ]]; do
     let e=${b}+${blocksize}-1
-    mkdir ${b}-${e}
+    mkdir -p ${b}-${e}
     cd ${b}-${e}
 
     # g_sorient
