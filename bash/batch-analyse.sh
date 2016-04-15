@@ -236,7 +236,7 @@ rms() {
   # Build group list
   groups=""
   for g in ${group_list[@]}; do
-    if [[ $(grep " $g " $index) ]]; then
+    if [[ $(grep " $g " $index_nw) ]]; then
       groups="${groups} ${g}"
     fi
   done
@@ -427,7 +427,7 @@ potential() {
   # build list of groups which do not include water
   groups_nw=()
   for g in ${group_list[@]}; do
-    if [[ $(grep " $g " $index) ]]; then
+    if [[ $(grep " $g " $index_nw) ]]; then
       groups_nw+=("$g")
     fi
   done
@@ -484,7 +484,7 @@ potential_blocks() {
   # build list of groups which do not include water
   groups_nw=()
   for g in ${group_list[@]}; do
-    if [[ $(grep " $g " $index) ]]; then
+    if [[ $(grep " $g " $index_nw) ]]; then
       groups_nw+=("$g")
     fi
   done
@@ -684,7 +684,7 @@ sas() {
   # Build target group list
   groups=()
   for g in ${group_list[@]}; do
-    if [[ $(grep " $g " $index) ]]; then
+    if [[ $(grep " $g " $index_nw) ]]; then
       groups+=("$g")
     fi
   done
