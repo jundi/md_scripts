@@ -29,7 +29,8 @@ Tasks: \n
 \tmindist (water needed)  \n
 \tpotential (water needed) \n
 \tpotential_blocks (water needed) \n
-\trdf \n
+\trdf (water needed) \n
+\trdf blocks (water needed) \n
 \trms \n
 \tsas \n
 \tsorient (water needed) \n
@@ -144,7 +145,7 @@ while [[ $# -gt 0 ]]; do
       maxjobs_nw="$2"
       shift
       ;;
-    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate|potential_blocks|sorient_blocks|order_blocks)
+    rdf|sorient|order|rms|potential|mindist|sas|dssp|gyrate|potential_blocks|sorient_blocks|order_blocks|rdf_blocks)
       tasks+=("$1")
       ;;
     *)
@@ -218,6 +219,83 @@ rdf() {
 
   cd ..
 }
+
+##############
+# RDF BLOCKS #
+##############
+rdf_blocks() {
+
+  workdir=g_rdf_blocks
+  mkdir -p $workdir
+  cd $workdir
+
+  blocksize=100000
+  ref_group="Lipids"
+  group_list=("CO" "CHO" "POPC" "DPPC" "Protein" "NA" "CL" "POPC_P" "POPC_N" "DPPC_P" "DPPC_N" "Monolayer" "Lipids" "HDL" "Hydrophobic_AA" "Hydrophile_AA" "POPC_C33" "POPC_C52" "DPPC_C31" "DPPC_C50")
+  group_list_water=("Water" "not_CO" "not_Lipids" "Water_and_ions")
+
+
+  groups=""
+  for g in ${group_list[@]}; do
+    if [[ $(grep " $g " $index_nw) ]]; then
+      groups="${groups} ${g}"
+    fi
+  done
+
+  groups_water=""
+  for g in ${group_list_water[@]}; do
+    if [[ $(grep " $g " $index) ]]; then
+      groups_water="${groups_water} ${g}"
+    fi
+  done
+
+
+  for group in $groups;do
+    mkdir -p $group
+    cd $group
+
+    b=1
+    while [[ $b -lt $lastframe ]]; do
+
+      let e=${b}+${blocksize}-1
+      mkdir -p ${b}-${e}
+      cd ${b}-${e}
+
+      #g_rdf
+      echo "$ref_group $group" | sem -j $maxjobs_nw g_rdf -f $traj_nw -n $index_nw -s $structure_nw  -b $b -e $e -rdf atom -com -dt $dt -bin 0.02 -o nonorm.xvg -nonorm 
+      echo "$ref_group $group" | sem -j $maxjobs_nw g_rdf -f $traj_nw -n $index_nw -s $structure_nw  -b $b -e $e -rdf atom -com -dt $dt -bin 0.02 -o rdf.xvg 
+
+      let b=${b}+${blocksize}
+      cd ..
+    done
+    cd ..
+  done
+
+  for group in $groups_water ;do
+    mkdir -p $group
+    cd $group
+
+    b=1
+    while [[ $b -lt $lastframe ]]; do
+
+      let e=${b}+${blocksize}-1
+      mkdir -p ${b}-${e}
+      cd ${b}-${e}
+
+      #g_rdf
+      echo "$ref_group $group" | sem -j $maxjobs g_rdf -f $traj -n $index -s $structure  -b $b -e $e -rdf atom -com -dt $dt -bin 0.02 -o nonorm.xvg -nonorm 
+      echo "$ref_group $group" | sem -j $maxjobs g_rdf -f $traj -n $index -s $structure  -b $b -e $e -rdf atom -com -dt $dt -bin 0.02 -o rdf.xvg 
+
+      let b=${b}+${blocksize}
+      cd ..
+    done
+
+    cd ..
+  done
+
+  cd ..
+}
+
 
 
 
