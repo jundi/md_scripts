@@ -769,7 +769,7 @@ sas() {
 
   for group in  ${groups[@]}; do
     # g_sas
-    echo "$ref_group $group" | sem -j $maxjobs_nw g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt $dt 
+    echo "$ref_group $group" | sem -j $maxjobs_nw g_sas -f $traj_nw -n $index_nw -s $structure_nw -o $group-area.xvg -or $group-resarea.xvg -oa $group-atomarea.xvg -tv $group-volume.xvg -q $group-connelly.pdb -dt 1000
   done
 
   cd ..
