@@ -16,7 +16,6 @@ Options: \n
 \t-fn \t traj_nowater.xtc \n
 \t-b \t first frame to use (ps) \n
 \t-e \t last frame to use (ps) \n
-\t-r \t HDL radius \n
 \t-dt \t skip frames \n
 \t-j \t max parallel jobs \n
 \t-jn \t max parallel jobs for analysis without water\n
@@ -127,10 +126,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     -e)
       lastframe="$2"
-      shift
-      ;;
-    -r)
-      radius="$2"
       shift
       ;;
     -dt)
@@ -659,10 +654,6 @@ sorient_blocks() {
     return 2
   fi
 
-  if ! [[  $radius ]]; then
-    echo "-r not defined"
-    return 2
-  fi
 
   workdir=g_sorient_blocks
   mkdir -p $workdir
@@ -672,25 +663,38 @@ sorient_blocks() {
   group="Water" # water group
   blocksize=100000 # 100 ns
 
-  # Calculate sorient for 0.2nm slices
-  rstep=0.1
-  rmin=$(echo "$radius-$rstep" | bc -l)
-  rmax=$(echo "$radius+$rstep" | bc -l)
+  # Calculate sorient for 0.1nm slices
+  rstep=0.2
+  Rmin=3.0
+  Rmax=7.0
   cbin=0.05
   rbin=0.05
 
-  b=1
-  while [[ $b -lt $lastframe ]]; do
-    let e=${b}+${blocksize}-1
-    mkdir -p ${b}-${e}
-    cd ${b}-${e}
 
-    # g_sorient
-    echo "$ref_group $group" | sem -j $maxjobs g_sorient -f $traj -n $index -s $structure -b $b -e $e -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
+  rmin=$Rmin
+  while [[ $(echo "$rmin < $Rmax" | bc -l) == 1 ]]; do # bash can't compare floats...
 
+    rmax=$(echo "$rmin+$rstep" | bc -l)
+    # Create new directory for every slice 
+    mkdir "$rmin-$rmax"
+    cd "$rmin-$rmax"
+
+    b=1
+    while [[ $b -lt $lastframe ]]; do
+      let e=${b}+${blocksize}-1
+      mkdir -p ${b}-${e}
+      cd ${b}-${e}
+
+      # g_sorient
+      echo "$ref_group $group" | sem -j $maxjobs g_sorient -f $traj -n $index -s $structure -b $b -e $e -cbin $cbin -rbin $rbin -com -rmin $rmin -rmax $rmax -dt $dt 
+
+      let b=${b}+${blocksize}
+      cd ..
+    done
+
+    rmin=$rmax
     cd ..
-    let b=${b}+${blocksize}
-  done
+  done 
 
   cd ..
 
@@ -722,7 +726,7 @@ mindist() {
     groups="NA CL"
     for ref_group in ${ref_groups[@]}; do
       # g_mindist
-      echo "$ref_group $groups" | sem -j $maxjobs_nw g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
+      echo "$ref_group $groups" | sem -j 6 g_mindist -f $traj_nw -n $index_nw -s $structure_nw -group -ng 2 -dt $dt -od "${ref_group}-ions_mindist.xvg" -on "${ref_group}-ions_numcount.xvg" -d $dist
     done
   fi
 
@@ -737,7 +741,7 @@ mindist() {
     groups="Water"
     for ref_group in ${ref_groups[@]}; do
       # g_mindist
-      echo "$ref_group $groups" | sem -j $maxjobs g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
+      echo "$ref_group $groups" | sem -j 6 g_mindist -f $traj -n $index -s $structure -group -ng 1 -dt $dt -od "${ref_group}-water_mindist.xvg" -on "${ref_group}-water_numcount.xvg" -d $dist 
     done
   fi
 
