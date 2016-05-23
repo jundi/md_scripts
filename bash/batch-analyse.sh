@@ -562,41 +562,46 @@ potential_blocks() {
     fi
   done
 
-  b=1
-  while [[ $b -lt $lastframe ]]; do
-    let e=${b}+${blocksize}-1
-    mkdir ${b}-${e}
-    cd ${b}-${e}
 
-    # calculations using trajectories WITHOUT water
-    for group in ${groups_nw[@]}
-    do
-      mkdir -p $group
-      cd $group
-      select="\"com of group $ref_group pbc; group $group\""
-      echo $group
+  # calculations using trajectories WITHOUT water
+  for group in ${groups_nw[@]}; do
+    mkdir -p $group
+    cd $group
+    select="\"com of group $ref_group pbc; group $group\""
 
+    b=1
+    while [[ $b -lt $lastframe ]]; do
+      let e=${b}+${blocksize}-1
+      mkdir ${b}-${e}
+      cd ${b}-${e}
       # g_H_potential
       sem -j $maxjobs_nw g_H_potential -f $traj_nw -n $index_nw -s $structure_nw  -b $b -e $e -geo Radial -bin_size $binsize -select "$select" -dt $dt 
-      
-      cd ..
-    done
+      let b=${b}+${blocksize}
+      cd .. # block done
+    done # all blocks done
 
-    # calculations using trajectories WITH water
-    for group in ${groups_water[@]}
-    do
-      mkdir -p $group
-      cd $group
-      select="\"com of group $ref_group pbc; group $group\""
+    cd .. # group done
+  done # no_water groups done
 
+  # calculations using trajectories WITH water
+  for group in ${groups_water[@]}; do
+    mkdir -p $group
+    cd $group
+    select="\"com of group $ref_group pbc; group $group\""
+
+    b=1
+    while [[ $b -lt $lastframe ]]; do
+      let e=${b}+${blocksize}-1
+      mkdir ${b}-${e}
+      cd ${b}-${e}
       # g_H_potential
       sem -j $maxjobs g_H_potential -f $traj -n $index -s $structure  -b $b -e $e -geo Radial -bin_size $binsize -select "$select" -dt $dt 
-      cd ..
-    done
+      let b=${b}+${blocksize}
+      cd .. # block done
+    done  # all blocks done
 
-    cd ..
-    let b=${b}+${blocksize}
-  done
+    cd .. # group done
+  done # water groups done
 
   cd ..
 }
