@@ -128,6 +128,10 @@ while [[ $# -gt 0 ]]; do
       lastframe="$2"
       shift
       ;;
+    -r)
+      radius="$2"
+      shift
+      ;;
     -dt)
       dt="$2"
       shift
@@ -667,13 +671,20 @@ sorient_blocks() {
   ref_group="Lipids" # Reference group
   group="Water" # water group
   blocksize=100000 # 100 ns
-
-  # Calculate sorient for 0.1nm slices
-  rstep=0.2
-  Rmin=3.0
-  Rmax=7.0
   cbin=0.05
   rbin=0.05
+
+  if [[ -n $radius ]]; then
+    # Calculate sorient only at r = radius
+    rstep=0.2
+    Rmin=$(echo "scale=3; $radius - ($rstep/2)" | bc -l)
+    Rmax=$(echo "scale=3; $radius + ($rstep/2)" | bc -l)
+  else
+    # Calculate sorient for 0.2nm slices
+    rstep=0.2
+    Rmin=3.0
+    Rmax=7.0
+  fi
 
 
   rmin=$Rmin
