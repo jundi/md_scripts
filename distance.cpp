@@ -95,6 +95,7 @@ class Distance : public TrajectoryAnalysisModule
         std::string                              fnAverage_;
         std::string                              fnAll_;
         std::string                              fnXYZ_;
+        std::string                              fnZ_;
         std::string                              fnHistogram_;
         std::string                              fnAllStats_;
         double                                   meanLength_;
@@ -103,6 +104,7 @@ class Distance : public TrajectoryAnalysisModule
 
         AnalysisData                             distances_;
         AnalysisData                             xyz_;
+        AnalysisData                             z_;
         AnalysisDataAverageModulePointer         summaryStatsModule_;
         AnalysisDataAverageModulePointer         allStatsModule_;
         AnalysisDataFrameAverageModulePointer    averageModule_;
@@ -127,6 +129,7 @@ Distance::Distance()
 
     registerAnalysisDataset(&distances_, "dist");
     registerAnalysisDataset(&xyz_, "xyz");
+    registerAnalysisDataset(&z_, "z");
     registerBasicDataset(summaryStatsModule_.get(), "stats");
     registerBasicDataset(allStatsModule_.get(), "allstats");
     registerBasicDataset(averageModule_.get(), "average");
@@ -170,6 +173,9 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
     options->addOption(FileNameOption("oxyz").filetype(eftPlot).outputFile()
                            .store(&fnXYZ_).defaultBasename("distxyz")
                            .description("Distance components as function of time"));
+    options->addOption(FileNameOption("oz").filetype(eftPlot).outputFile()
+                           .store(&fnZ_).defaultBasename("distz")
+                           .description("Distance z-component as function of time"));
     options->addOption(FileNameOption("oh").filetype(eftPlot).outputFile()
                            .store(&fnHistogram_).defaultBasename("disthist")
                            .description("Histogram of the distances"));
@@ -234,11 +240,13 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
 
     distances_.setDataSetCount(sel_.size());
     xyz_.setDataSetCount(sel_.size());
+    z_.setDataSetCount(sel_.size());
     for (size_t i = 0; i < sel_.size(); ++i)
     {
         const int distCount = sel_[i].posCount();
         distances_.setColumnCount(i, distCount);
         xyz_.setColumnCount(i, distCount * 3);
+        z_.setColumnCount(i, distCount);
     }
     const double histogramMin = (1.0 - lengthDev_) * meanLength_;
     const double histogramMax = (1.0 + lengthDev_) * meanLength_;
@@ -284,6 +292,18 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
         xyz_.addModule(plotm);
     }
 
+    if (!fnZ_.empty())
+    {
+        AnalysisDataPlotModulePointer plotm(
+                new AnalysisDataPlotModule(settings.plotSettings()));
+        plotm->setFileName(fnZ_);
+        plotm->setTitle("Distance");
+        plotm->setXAxisIsTime();
+        plotm->setYLabel("Distance (nm)");
+        // TODO: Add legends? (there can be a massive amount of columns)
+        z_.addModule(plotm);
+    }
+
     if (!fnHistogram_.empty())
     {
         AnalysisDataPlotModulePointer plotm(
@@ -325,16 +345,19 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
 {
     AnalysisDataHandle   distHandle = pdata->dataHandle(distances_);
     AnalysisDataHandle   xyzHandle  = pdata->dataHandle(xyz_);
+    AnalysisDataHandle   zHandle  = pdata->dataHandle(z_);
     const SelectionList &sel        = pdata->parallelSelections(sel_);
 
     //checkSelections(sel);
 
     distHandle.startFrame(frnr, fr.time);
     xyzHandle.startFrame(frnr, fr.time);
+    zHandle.startFrame(frnr, fr.time);
     for (size_t g = 0; g < sel.size(); ++g)
     {
         distHandle.selectDataSet(g);
         xyzHandle.selectDataSet(g);
+        zHandle.selectDataSet(g);
         for (int i = 0, n = 0; i < sel[g].posCount(); i += 1, ++n)
         {
             const SelectionPosition &p1 = ref_.position(0);
@@ -352,10 +375,12 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
             bool bPresent = p1.selected() && p2.selected();
             distHandle.setPoint(n, dist, bPresent);
             xyzHandle.setPoints(n*3, 3, dx);
+            zHandle.setPoint(n, dx[2], bPresent);
         }
     }
     distHandle.finishFrame();
     xyzHandle.finishFrame();
+    zHandle.finishFrame();
 }
 
 
