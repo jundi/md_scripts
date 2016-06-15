@@ -91,6 +91,7 @@ class Distance : public TrajectoryAnalysisModule
 
     private:
         SelectionList                            sel_;
+        Selection                                ref_;
         std::string                              fnAverage_;
         std::string                              fnAll_;
         std::string                              fnXYZ_;
@@ -177,7 +178,9 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
                            .description("Statistics for individual distances"));
     options->addOption(SelectionOption("select").storeVector(&sel_)
                            .required().dynamicMask().multiValue()
-                           .description("Position pairs to calculate distances for"));
+                           .description("Positions to calculate distances for"));
+    options->addOption(SelectionOption("ref").store(&ref_).required()
+                           .description("Reference group"));
     // TODO: Extend the histogramming implementation to allow automatic
     // extension of the histograms to cover the data, removing the need for
     // the first two options.
@@ -227,13 +230,13 @@ void
 Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
                        const TopologyInformation         & /*top*/)
 {
-    checkSelections(sel_);
+    //checkSelections(sel_);
 
     distances_.setDataSetCount(sel_.size());
     xyz_.setDataSetCount(sel_.size());
     for (size_t i = 0; i < sel_.size(); ++i)
     {
-        const int distCount = sel_[i].posCount() / 2;
+        const int distCount = sel_[i].posCount();
         distances_.setColumnCount(i, distCount);
         xyz_.setColumnCount(i, distCount * 3);
     }
@@ -324,7 +327,7 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
     AnalysisDataHandle   xyzHandle  = pdata->dataHandle(xyz_);
     const SelectionList &sel        = pdata->parallelSelections(sel_);
 
-    checkSelections(sel);
+    //checkSelections(sel);
 
     distHandle.startFrame(frnr, fr.time);
     xyzHandle.startFrame(frnr, fr.time);
@@ -332,9 +335,9 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
     {
         distHandle.selectDataSet(g);
         xyzHandle.selectDataSet(g);
-        for (int i = 0, n = 0; i < sel[g].posCount(); i += 2, ++n)
+        for (int i = 0, n = 0; i < sel[g].posCount(); i += 1, ++n)
         {
-            const SelectionPosition &p1 = sel[g].position(i);
+            const SelectionPosition &p1 = ref_.position(0);
             const SelectionPosition &p2 = sel[g].position(i+1);
             rvec                     dx;
             if (pbc != NULL)
