@@ -228,9 +228,12 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
         }
         bool bPresent = p1.selected() && p2.selected();
 
-        for(unsigned int i = 0; i < 3; i++) {
-          if(dx[i] < 0)dx[i] *= -1;
-        }
+	if (absolute_ == true) {
+            for(unsigned int i = 0; i < 3; i++) {
+                if(dx[i] < 0)dx[i] *= -1;
+            }
+	}
+
         xyzHandle.setPoints(i*3, 3, dx);
         zHandle.setPoint(i, dx[2], bPresent);
     }
