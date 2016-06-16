@@ -92,44 +92,17 @@ class Distance : public TrajectoryAnalysisModule
     private:
         Selection	                         sel_;
         Selection                                ref_;
-        //std::string                              fnAverage_;
         std::string                              fnXYZ_;
         std::string                              fnZ_;
-        //double                                   meanLength_;
-        //double                                   lengthDev_;
-        //double                                   binWidth_;
-
-        //AnalysisData                             distances_;
         AnalysisData                             xyz_;
         AnalysisData                             z_;
-        //AnalysisDataAverageModulePointer         summaryStatsModule_;
-        //AnalysisDataAverageModulePointer         allStatsModule_;
-        //AnalysisDataFrameAverageModulePointer    averageModule_;
-        //AnalysisDataSimpleHistogramModulePointer histogramModule_;
-
-        // Copy and assign disallowed by base.
 };
 
 Distance::Distance()
     : TrajectoryAnalysisModule(DistanceInfo::name, DistanceInfo::shortDescription)
 {
-    //summaryStatsModule_.reset(new AnalysisDataAverageModule());
-    //summaryStatsModule_->setAverageDataSets(true);
-    //distances_.addModule(summaryStatsModule_);
-    //allStatsModule_.reset(new AnalysisDataAverageModule());
-    //distances_.addModule(allStatsModule_);
-    //averageModule_.reset(new AnalysisDataFrameAverageModule());
-    //distances_.addModule(averageModule_);
-    //histogramModule_.reset(new AnalysisDataSimpleHistogramModule());
-    //distances_.addModule(histogramModule_);
-
-    //registerAnalysisDataset(&distances_, "dist");
     registerAnalysisDataset(&xyz_, "xyz");
     registerAnalysisDataset(&z_, "z");
-    //registerBasicDataset(summaryStatsModule_.get(), "stats");
-    //registerBasicDataset(allStatsModule_.get(), "allstats");
-    //registerBasicDataset(averageModule_.get(), "average");
-    //registerBasicDataset(&histogramModule_->averager(), "histogram");
 }
 
 
@@ -160,28 +133,16 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
 
     options->setDescription(desc);
 
-    //options->addOption(FileNameOption("oav").filetype(eftPlot).outputFile()
-                           //.store(&fnAverage_).defaultBasename("distave")
-                           //.description("Average distances as function of time"));
-    //options->addOption(FileNameOption("oall").filetype(eftPlot).outputFile()
-                           //.store(&fnAll_).defaultBasename("dist")
-                           //.description("All distances as function of time"));
     options->addOption(FileNameOption("oxyz").filetype(eftPlot).outputFile()
 			   .store(&fnXYZ_).defaultBasename("distxyz")
 			   .description("Distance components as function of time"));
     options->addOption(FileNameOption("oz").filetype(eftPlot).outputFile()
                            .store(&fnZ_).defaultBasename("distz")
                            .description("Distance z-component as function of time"));
-    //options->addOption(FileNameOption("oh").filetype(eftPlot).outputFile()
-                           //.store(&fnHistogram_).defaultBasename("disthist")
-                           //.description("Histogram of the distances"));
-    //options->addOption(FileNameOption("oallstat").filetype(eftPlot).outputFile()
-                           //.store(&fnAllStats_).defaultBasename("diststat")
-                           //.description("Statistics for individual distances"));
     options->addOption(SelectionOption("select").store(&sel_).required()
                            .description("Positions to calculate distances for"));
     options->addOption(SelectionOption("ref").store(&ref_).required()
-                           .description("Reference group"));
+                           .description("Reference position"));
     // TODO: Extend the histogramming implementation to allow automatic
     // extension of the histograms to cover the data, removing the need for
     // the first two options.
@@ -231,50 +192,11 @@ void
 Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
                        const TopologyInformation         & /*top*/)
 {
-    //checkSelections(sel_);
-
-    //distances_.setDataSetCount(sel_.size());
-    //xyz_.setDataSetCount(sel_.size());
-    //z_.setDataSetCount(sel_.size());
-    //for (size_t i = 0; i < sel_.size(); ++i)
-    //{
-        const int distCount = sel_.posCount();
-        printf("  distCount:  %d\n", distCount);
-        //distances_.setColumnCount(0, distCount);
-        xyz_.setColumnCount(0, distCount * 3);
-        z_.setColumnCount(0, distCount);
-    //}
-    //const double histogramMin = (1.0 - lengthDev_) * meanLength_;
-    //const double histogramMax = (1.0 + lengthDev_) * meanLength_;
-    //histogramModule_->init(histogramFromRange(histogramMin, histogramMax)
-                               //.binWidth(binWidth_).includeAll());
-
-    //if (!fnAverage_.empty())
-    //{
-        //AnalysisDataPlotModulePointer plotm(
-                //new AnalysisDataPlotModule(settings.plotSettings()));
-        //plotm->setFileName(fnAverage_);
-        //plotm->setTitle("Average distance");
-        //plotm->setXAxisIsTime();
-        //plotm->setYLabel("Distance (nm)");
-        ////for (size_t g = 0; g < sel_.size(); ++g)
-        ////{
-            ////plotm->appendLegend(sel_[g].name());
-        ////}
-        //averageModule_->addModule(plotm);
-    //}
-
-    //if (!fnAll_.empty())
-    //{
-        //AnalysisDataPlotModulePointer plotm(
-                //new AnalysisDataPlotModule(settings.plotSettings()));
-        //plotm->setFileName(fnAll_);
-        //plotm->setTitle("Distance");
-        //plotm->setXAxisIsTime();
-        //plotm->setYLabel("Distance (nm)");
-        //// TODO: Add legends? (there can be a massive amount of columns)
-        //distances_.addModule(plotm);
-    //}
+    const int distCount = sel_.posCount();
+    const int refCount = ref_.posCount();
+    printf("  distCount:  %d\n", distCount);
+    xyz_.setColumnCount(0, distCount * 3);
+    z_.setColumnCount(0, distCount);
 
     if (!fnXYZ_.empty())
     {
