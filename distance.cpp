@@ -90,7 +90,7 @@ class Distance : public TrajectoryAnalysisModule
         virtual void writeOutput();
 
     private:
-        SelectionList                            sel_;
+        Selection	                         sel_;
         Selection                                ref_;
         std::string                              fnAverage_;
         std::string                              fnAll_;
@@ -182,8 +182,7 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
     options->addOption(FileNameOption("oallstat").filetype(eftPlot).outputFile()
                            .store(&fnAllStats_).defaultBasename("diststat")
                            .description("Statistics for individual distances"));
-    options->addOption(SelectionOption("select").storeVector(&sel_)
-                           .required().dynamicMask().multiValue()
+    options->addOption(SelectionOption("select").store(&sel_).required()
                            .description("Positions to calculate distances for"));
     options->addOption(SelectionOption("ref").store(&ref_).required()
                            .description("Reference group"));
@@ -238,16 +237,17 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
 {
     //checkSelections(sel_);
 
-    distances_.setDataSetCount(sel_.size());
-    xyz_.setDataSetCount(sel_.size());
-    z_.setDataSetCount(sel_.size());
-    for (size_t i = 0; i < sel_.size(); ++i)
-    {
-        const int distCount = sel_[i].posCount();
-        distances_.setColumnCount(i, distCount);
-        xyz_.setColumnCount(i, distCount * 3);
-        z_.setColumnCount(i, distCount);
-    }
+    //distances_.setDataSetCount(sel_.size());
+    //xyz_.setDataSetCount(sel_.size());
+    //z_.setDataSetCount(sel_.size());
+    //for (size_t i = 0; i < sel_.size(); ++i)
+    //{
+        const int distCount = sel_.posCount();
+        printf("  distCount:  %d\n", distCount);
+        distances_.setColumnCount(0, distCount);
+        xyz_.setColumnCount(0, distCount * 3);
+        z_.setColumnCount(0, distCount);
+    //}
     const double histogramMin = (1.0 - lengthDev_) * meanLength_;
     const double histogramMax = (1.0 + lengthDev_) * meanLength_;
     histogramModule_->init(histogramFromRange(histogramMin, histogramMax)
@@ -261,10 +261,10 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
         plotm->setTitle("Average distance");
         plotm->setXAxisIsTime();
         plotm->setYLabel("Distance (nm)");
-        for (size_t g = 0; g < sel_.size(); ++g)
-        {
-            plotm->appendLegend(sel_[g].name());
-        }
+        //for (size_t g = 0; g < sel_.size(); ++g)
+        //{
+            //plotm->appendLegend(sel_[g].name());
+        //}
         averageModule_->addModule(plotm);
     }
 
@@ -312,10 +312,10 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
         plotm->setTitle("Distance histogram");
         plotm->setXLabel("Distance (nm)");
         plotm->setYLabel("Probability");
-        for (size_t g = 0; g < sel_.size(); ++g)
-        {
-            plotm->appendLegend(sel_[g].name());
-        }
+        //for (size_t g = 0; g < sel_.size(); ++g)
+        //{
+            //plotm->appendLegend(sel_[g].name());
+        //}
         histogramModule_->averager().addModule(plotm);
     }
 
@@ -328,11 +328,11 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
         plotm->setTitle("Statistics for individual distances");
         plotm->setXLabel("Distance index");
         plotm->setYLabel("Average/standard deviation (nm)");
-        for (size_t g = 0; g < sel_.size(); ++g)
-        {
-            plotm->appendLegend(std::string(sel_[g].name()) + " avg");
-            plotm->appendLegend(std::string(sel_[g].name()) + " std.dev.");
-        }
+        //for (size_t g = 0; g < sel_.size(); ++g)
+        //{
+            //plotm->appendLegend(std::string(sel_[g].name()) + " avg");
+            //plotm->appendLegend(std::string(sel_[g].name()) + " std.dev.");
+        //}
         // TODO: Consider whether this output format is the best possible.
         allStatsModule_->addModule(plotm);
     }
@@ -346,22 +346,22 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
     AnalysisDataHandle   distHandle = pdata->dataHandle(distances_);
     AnalysisDataHandle   xyzHandle  = pdata->dataHandle(xyz_);
     AnalysisDataHandle   zHandle  = pdata->dataHandle(z_);
-    const SelectionList &sel        = pdata->parallelSelections(sel_);
+    //const SelectionList &sel        = pdata->parallelSelections(sel_);
 
     //checkSelections(sel);
 
     distHandle.startFrame(frnr, fr.time);
     xyzHandle.startFrame(frnr, fr.time);
     zHandle.startFrame(frnr, fr.time);
-    for (size_t g = 0; g < sel.size(); ++g)
-    {
-        distHandle.selectDataSet(g);
-        xyzHandle.selectDataSet(g);
-        zHandle.selectDataSet(g);
-        for (int i = 0, n = 0; i < sel[g].posCount(); i += 1, ++n)
+    //for (size_t g = 0; g < sel.size(); ++g)
+    //{
+        distHandle.selectDataSet(0);
+        xyzHandle.selectDataSet(0);
+        zHandle.selectDataSet(0);
+        for (int i = 0; i < sel_.posCount(); i++)
         {
             const SelectionPosition &p1 = ref_.position(0);
-            const SelectionPosition &p2 = sel[g].position(i+1);
+            const SelectionPosition &p2 = sel_.position(i);
             rvec                     dx;
             if (pbc != NULL)
             {
@@ -373,15 +373,15 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
             }
             real dist     = norm(dx);
             bool bPresent = p1.selected() && p2.selected();
-            distHandle.setPoint(n, dist, bPresent);
+            distHandle.setPoint(i, dist, bPresent);
 
 	    for(unsigned int i = 0; i < 3; i++) {
 	      if(dx[i] < 0)dx[i] *= -1;
 	    }
-            xyzHandle.setPoints(n*3, 3, dx);
-            zHandle.setPoint(n, dx[2], bPresent);
+            xyzHandle.setPoints(i*3, 3, dx);
+            zHandle.setPoint(i, dx[2], bPresent);
         }
-    }
+    //}
     distHandle.finishFrame();
     xyzHandle.finishFrame();
     zHandle.finishFrame();
@@ -400,18 +400,18 @@ Distance::finishAnalysis(int /*nframes*/)
 void
 Distance::writeOutput()
 {
-    SelectionList::const_iterator sel;
-    int                           index;
-    for (sel = sel_.begin(), index = 0; sel != sel_.end(); ++sel, ++index)
-    {
-        printf("%s:\n", sel->name());
-        printf("  Number of samples:  %d\n",
-               summaryStatsModule_->sampleCount(index, 0));
-        printf("  Average distance:   %-8.5f nm\n",
-               summaryStatsModule_->average(index, 0));
-        printf("  Standard deviation: %-8.5f nm\n",
-               summaryStatsModule_->standardDeviation(index, 0));
-    }
+    //SelectionList::const_iterator sel;
+    //int                           index;
+    //for (sel = sel_.begin(), index = 0; sel != sel_.end(); ++sel, ++index)
+    //{
+        //printf("%s:\n", sel->name());
+        //printf("  Number of samples:  %d\n",
+               //summaryStatsModule_->sampleCount(index, 0));
+        //printf("  Average distance:   %-8.5f nm\n",
+               //summaryStatsModule_->average(index, 0));
+        //printf("  Standard deviation: %-8.5f nm\n",
+               //summaryStatsModule_->standardDeviation(index, 0));
+    //}
 }
 
 }       // namespace
