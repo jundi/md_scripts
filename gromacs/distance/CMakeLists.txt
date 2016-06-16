@@ -1,48 +1,42 @@
-#
-# This file is part of the GROMACS molecular simulation package.
-#
-# Copyright (c) 2011,2012,2014, by the GROMACS development team, led by
-# Mark Abraham, David van der Spoel, Berk Hess, and Erik Lindahl,
-# and including many others, as listed in the AUTHORS file in the
-# top-level source directory and at http://www.gromacs.org.
-#
-# GROMACS is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public License
-# as published by the Free Software Foundation; either version 2.1
-# of the License, or (at your option) any later version.
-#
-# GROMACS is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with GROMACS; if not, see
-# http://www.gnu.org/licenses, or write to the Free Software Foundation,
-# Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA.
-#
-# If you want to redistribute modifications to GROMACS, please
-# consider that scientific software is very special. Version
-# control is crucial - bugs must be traceable. We will be happy to
-# consider code for inclusion in the official distribution, but
-# derived work must not be called official GROMACS. Details are found
-# in the README & COPYING files - if they are missing, get the
-# official version at http://www.gromacs.org.
-#
-# To help us fund GROMACS development, we humbly ask that you cite
-# the research papers on the package. Check out http://www.gromacs.org.
+cmake_minimum_required(VERSION 2.8.8)
 
-add_executable(template template.cpp)
-target_link_libraries(template libgromacs ${GMX_EXE_LINKER_FLAGS})
-install(FILES CMakeLists.txt.template
-        DESTINATION ${DATA_INSTALL_DIR}/template
-        RENAME CMakeLists.txt
-        COMPONENT development)
+project(distance CXX)
 
-install(FILES README template.cpp Makefile.pkg
-        DESTINATION ${DATA_INSTALL_DIR}/template
-        COMPONENT development)
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif()
 
-install(FILES cmake/FindGROMACS.cmake
-        DESTINATION ${DATA_INSTALL_DIR}/template/cmake
-        COMPONENT development)
+# CMake modules are in a subdirectory to keep this file cleaner
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+# In principle, this could be deduced from GROMACS_IS_DOUBLE returned by
+# find_package(GROMACS) based on the suffix alone, but it is clearer that the
+# user explicitly sets what they want to get, and then need to provide a suffix
+# to match.
+option(GMX_DOUBLE "Use double precision" OFF)
+set(GMX_SUFFIX "" CACHE STRING "Suffix for the GROMACS installation to use (empty for default)")
+
+# This does not allow for a non-suffixed double-precision libgromacs, but
+# that should be rare enough for demonstration purposes.
+if (GMX_DOUBLE AND NOT GMX_SUFFIX)
+    set(GROMACS_SUFFIX "_d")
+else()
+    set(GROMACS_SUFFIX ${GMX_SUFFIX})
+endif()
+
+find_package(GROMACS 5.1 REQUIRED)
+gromacs_check_double(GMX_DOUBLE)
+gromacs_check_compiler(CXX)
+include_directories(${GROMACS_INCLUDE_DIRS})
+add_definitions(${GROMACS_DEFINITIONS})
+
+# Use static linking on MSVC
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+    string(REPLACE /MD /MT CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
+    set(CMAKE_C_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE} CACHE STRING "" FORCE)
+    string(REPLACE /MD /MT CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
+    set(CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG} CACHE STRING "" FORCE)
+endif()
+
+add_executable(distance distance.cpp)
+target_link_libraries(distance ${GROMACS_LIBRARIES})
