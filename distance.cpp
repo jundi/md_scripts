@@ -374,6 +374,10 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
             real dist     = norm(dx);
             bool bPresent = p1.selected() && p2.selected();
             distHandle.setPoint(n, dist, bPresent);
+
+	    for(unsigned int i = 0; i < 3; i++) {
+	      if(dx[i] < 0)dx[i] *= -1;
+	    }
             xyzHandle.setPoints(n*3, 3, dx);
             zHandle.setPoint(n, dx[2], bPresent);
         }
