@@ -96,10 +96,12 @@ class Distance : public TrajectoryAnalysisModule
         std::string                              fnZ_;
         AnalysisData                             xyz_;
         AnalysisData                             z_;
+        bool                                     absolute_;
 };
 
 Distance::Distance()
-    : TrajectoryAnalysisModule(DistanceInfo::name, DistanceInfo::shortDescription)
+    : TrajectoryAnalysisModule(DistanceInfo::name, DistanceInfo::shortDescription),
+      absolute_(false)
 {
     registerAnalysisDataset(&xyz_, "xyz");
     registerAnalysisDataset(&z_, "z");
@@ -143,48 +145,24 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
                            .description("Positions to calculate distances for"));
     options->addOption(SelectionOption("ref").store(&ref_).required()
                            .description("Reference position"));
-    // TODO: Extend the histogramming implementation to allow automatic
-    // extension of the histograms to cover the data, removing the need for
-    // the first two options.
-    //options->addOption(DoubleOption("len").store(&meanLength_)
-                           //.description("Mean distance for histogramming"));
-    //options->addOption(DoubleOption("tol").store(&lengthDev_)
-                           //.description("Width of full distribution as fraction of [TT]-len[tt]"));
-    //options->addOption(DoubleOption("binw").store(&binWidth_)
-                           //.description("Bin width for histogramming"));
+    options->addOption(BooleanOption("abs").store(&absolute_)
+                           .description("Use absolute distances."));
 }
 
 
 /*! \brief
  * Checks that selections conform to the expectations of the tool.
  */
-void checkSelections(const SelectionList &sel)
+void checkReference(const Selection &ref)
 {
-    for (size_t g = 0; g < sel.size(); ++g)
-    {
-        if (sel[g].posCount() % 2 != 0)
-        {
-            std::string message = formatString(
-                        "Selection '%s' does not evaluate into an even number of positions "
-                        "(there are %d positions)",
-                        sel[g].name(), sel[g].posCount());
-            GMX_THROW(InconsistentInputError(message));
-        }
-        if (sel[g].isDynamic())
-        {
-            for (int i = 0; i < sel[g].posCount(); i += 2)
-            {
-                if (sel[g].position(i).selected() != sel[g].position(i+1).selected())
-                {
-                    std::string message =
-                        formatString("Dynamic selection %d does not select "
-                                     "a consistent set of pairs over the frames",
-                                     static_cast<int>(g + 1));
-                    GMX_THROW(InconsistentInputError(message));
-                }
-            }
-        }
-    }
+   if (ref.posCount() != 1)
+   {
+       std::string message = formatString(
+                   "Selection '%s' does not evaluate into one position."
+                   "(there are %d positions)",
+                   ref.name(), ref.posCount());
+       GMX_THROW(InconsistentInputError(message));
+   }
 }
 
 
@@ -193,8 +171,6 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
                        const TopologyInformation         & /*top*/)
 {
     const int distCount = sel_.posCount();
-    const int refCount = ref_.posCount();
-    printf("  distCount:  %d\n", distCount);
     xyz_.setColumnCount(0, distCount * 3);
     z_.setColumnCount(0, distCount);
 
@@ -221,39 +197,6 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
         // TODO: Add legends? (there can be a massive amount of columns)
         z_.addModule(plotm);
     }
-
-    //if (!fnHistogram_.empty())
-    //{
-        //AnalysisDataPlotModulePointer plotm(
-                //new AnalysisDataPlotModule(settings.plotSettings()));
-        //plotm->setFileName(fnHistogram_);
-        //plotm->setTitle("Distance histogram");
-        //plotm->setXLabel("Distance (nm)");
-        //plotm->setYLabel("Probability");
-        ////for (size_t g = 0; g < sel_.size(); ++g)
-        ////{
-            ////plotm->appendLegend(sel_[g].name());
-        ////}
-        //histogramModule_->averager().addModule(plotm);
-    //}
-
-    //if (!fnAllStats_.empty())
-    //{
-        //AnalysisDataPlotModulePointer plotm(
-                //new AnalysisDataPlotModule(settings.plotSettings()));
-        //plotm->setFileName(fnAllStats_);
-        //plotm->setErrorsAsSeparateColumn(true);
-        //plotm->setTitle("Statistics for individual distances");
-        //plotm->setXLabel("Distance index");
-        //plotm->setYLabel("Average/standard deviation (nm)");
-        ////for (size_t g = 0; g < sel_.size(); ++g)
-        ////{
-            ////plotm->appendLegend(std::string(sel_[g].name()) + " avg");
-            ////plotm->appendLegend(std::string(sel_[g].name()) + " std.dev.");
-        ////}
-        //// TODO: Consider whether this output format is the best possible.
-        //allStatsModule_->addModule(plotm);
-    //}
 }
 
 
@@ -261,46 +204,36 @@ void
 Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
                        TrajectoryAnalysisModuleData *pdata)
 {
-    //AnalysisDataHandle   distHandle = pdata->dataHandle(distances_);
     AnalysisDataHandle   xyzHandle  = pdata->dataHandle(xyz_);
     AnalysisDataHandle   zHandle  = pdata->dataHandle(z_);
-    //const SelectionList &sel        = pdata->parallelSelections(sel_);
 
-    //checkSelections(sel);
+    checkReference(ref_);
 
-    //distHandle.startFrame(frnr, fr.time);
     xyzHandle.startFrame(frnr, fr.time);
     zHandle.startFrame(frnr, fr.time);
-    //for (size_t g = 0; g < sel.size(); ++g)
-    //{
-        //distHandle.selectDataSet(0);
-        xyzHandle.selectDataSet(0);
-        zHandle.selectDataSet(0);
-        for (int i = 0; i < sel_.posCount(); i++)
+    xyzHandle.selectDataSet(0);
+    zHandle.selectDataSet(0);
+    for (int i = 0; i < sel_.posCount(); i++)
+    {
+        const SelectionPosition &p1 = ref_.position(0);
+        const SelectionPosition &p2 = sel_.position(i);
+        rvec                     dx;
+        if (pbc != NULL)
         {
-            const SelectionPosition &p1 = ref_.position(0);
-            const SelectionPosition &p2 = sel_.position(i);
-            rvec                     dx;
-            if (pbc != NULL)
-            {
-                pbc_dx(pbc, p2.x(), p1.x(), dx);
-            }
-            else
-            {
-                rvec_sub(p2.x(), p1.x(), dx);
-            }
-            //real dist     = norm(dx);
-            bool bPresent = p1.selected() && p2.selected();
-            //distHandle.setPoint(i, dist, bPresent);
-
-	    for(unsigned int i = 0; i < 3; i++) {
-	      if(dx[i] < 0)dx[i] *= -1;
-	    }
-            xyzHandle.setPoints(i*3, 3, dx);
-            zHandle.setPoint(i, dx[2], bPresent);
+            pbc_dx(pbc, p2.x(), p1.x(), dx);
         }
-    //}
-    //distHandle.finishFrame();
+        else
+        {
+            rvec_sub(p2.x(), p1.x(), dx);
+        }
+        bool bPresent = p1.selected() && p2.selected();
+
+        for(unsigned int i = 0; i < 3; i++) {
+          if(dx[i] < 0)dx[i] *= -1;
+        }
+        xyzHandle.setPoints(i*3, 3, dx);
+        zHandle.setPoint(i, dx[2], bPresent);
+    }
     xyzHandle.finishFrame();
     zHandle.finishFrame();
 }
@@ -309,27 +242,13 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
 void
 Distance::finishAnalysis(int /*nframes*/)
 {
-    //AbstractAverageHistogram &averageHistogram = histogramModule_->averager();
-    //averageHistogram.normalizeProbability();
-    //averageHistogram.done();
 }
 
 
 void
 Distance::writeOutput()
 {
-    //SelectionList::const_iterator sel;
-    //int                           index;
-    //for (sel = sel_.begin(), index = 0; sel != sel_.end(); ++sel, ++index)
-    //{
-        //printf("%s:\n", sel->name());
-        //printf("  Number of samples:  %d\n",
-               //summaryStatsModule_->sampleCount(index, 0));
-        //printf("  Average distance:   %-8.5f nm\n",
-               //summaryStatsModule_->average(index, 0));
-        //printf("  Standard deviation: %-8.5f nm\n",
-               //summaryStatsModule_->standardDeviation(index, 0));
-    //}
+    printf("Number of positions in selection:  %d\n", sel_.posCount());
 }
 
 }       // namespace
