@@ -94,17 +94,18 @@ class Distance : public TrajectoryAnalysisModule
         Selection                                ref_;
         std::string                              fnXYZ_;
         std::string                              fnZ_;
+        std::string                              fnAbsZ_;
         AnalysisData                             xyz_;
         AnalysisData                             z_;
-        bool                                     absolute_;
+        AnalysisData                             absz_;
 };
 
 Distance::Distance()
-    : TrajectoryAnalysisModule(DistanceInfo::name, DistanceInfo::shortDescription),
-      absolute_(false)
+    : TrajectoryAnalysisModule(DistanceInfo::name, DistanceInfo::shortDescription)
 {
     registerAnalysisDataset(&xyz_, "xyz");
     registerAnalysisDataset(&z_, "z");
+    registerAnalysisDataset(&absz_, "absz");
 }
 
 
@@ -141,12 +142,13 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
     options->addOption(FileNameOption("oz").filetype(eftPlot).outputFile()
                            .store(&fnZ_).defaultBasename("distz")
                            .description("Distance z-component as function of time"));
+    options->addOption(FileNameOption("oabsz").filetype(eftPlot).outputFile()
+                           .store(&fnZ_).defaultBasename("absdistz")
+                           .description("Absolute distance z-component as function of time"));
     options->addOption(SelectionOption("select").store(&sel_).required()
                            .description("Positions to calculate distances for"));
     options->addOption(SelectionOption("ref").store(&ref_).required()
                            .description("Reference position"));
-    options->addOption(BooleanOption("abs").store(&absolute_)
-                           .description("Use absolute distances."));
 }
 
 
@@ -173,6 +175,7 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
     const int distCount = sel_.posCount();
     xyz_.setColumnCount(0, distCount * 3);
     z_.setColumnCount(0, distCount);
+    absz_.setColumnCount(0, distCount);
 
     if (!fnXYZ_.empty())
     {
@@ -197,6 +200,18 @@ Distance::initAnalysis(const TrajectoryAnalysisSettings &settings,
         // TODO: Add legends? (there can be a massive amount of columns)
         z_.addModule(plotm);
     }
+
+    if (!fnAbsZ_.empty())
+    {
+        AnalysisDataPlotModulePointer plotm(
+                new AnalysisDataPlotModule(settings.plotSettings()));
+        plotm->setFileName(fnAbsZ_);
+        plotm->setTitle("Distance");
+        plotm->setXAxisIsTime();
+        plotm->setYLabel("Distance (nm)");
+        // TODO: Add legends? (there can be a massive amount of columns)
+        absz_.addModule(plotm);
+    }
 }
 
 
@@ -206,13 +221,16 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
 {
     AnalysisDataHandle   xyzHandle  = pdata->dataHandle(xyz_);
     AnalysisDataHandle   zHandle  = pdata->dataHandle(z_);
+    AnalysisDataHandle   abszHandle  = pdata->dataHandle(absz_);
 
     checkReference(ref_);
 
     xyzHandle.startFrame(frnr, fr.time);
     zHandle.startFrame(frnr, fr.time);
+    abszHandle.startFrame(frnr, fr.time);
     xyzHandle.selectDataSet(0);
     zHandle.selectDataSet(0);
+    abszHandle.selectDataSet(0);
     for (int i = 0; i < sel_.posCount(); i++)
     {
         const SelectionPosition &p1 = ref_.position(0);
@@ -228,17 +246,16 @@ Distance::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc,
         }
         bool bPresent = p1.selected() && p2.selected();
 
-	if (absolute_ == true) {
-            for(unsigned int i = 0; i < 3; i++) {
-                if(dx[i] < 0)dx[i] *= -1;
-            }
-	}
-
         xyzHandle.setPoints(i*3, 3, dx);
-        zHandle.setPoint(i, dx[2], bPresent);
+	zHandle.setPoint(i, dx[2], bPresent);
+	for(unsigned int i = 0; i < 3; i++) {
+	  if(dx[i] < 0)dx[i] *= -1;
+	}
+        abszHandle.setPoint(i, dx[2], bPresent);
     }
     xyzHandle.finishFrame();
     zHandle.finishFrame();
+    abszHandle.finishFrame();
 }
 
 
