@@ -143,7 +143,7 @@ Distance::initOptions(Options *options, TrajectoryAnalysisSettings * /*settings*
                            .store(&fnZ_).defaultBasename("distz")
                            .description("Distance z-component as function of time"));
     options->addOption(FileNameOption("oabsz").filetype(eftPlot).outputFile()
-                           .store(&fnZ_).defaultBasename("absdistz")
+                           .store(&fnAbsZ_).defaultBasename("absdistz")
                            .description("Absolute distance z-component as function of time"));
     options->addOption(SelectionOption("select").store(&sel_).required()
                            .description("Positions to calculate distances for"));
