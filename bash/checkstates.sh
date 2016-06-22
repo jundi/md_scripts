@@ -4,7 +4,7 @@
 #
 
 for state in $(find -name "state.cpt"); do
-  lframe=$(gmxcheck -f $state 2>&1 | grep "Last frame")
+  lframe=$(gmx check -f $state 2>&1 | grep "Last frame")
   tstep=$(echo $lframe | awk '{print $5}')
   folder=$(dirname $state)
   echo "$folder   $tstep"
