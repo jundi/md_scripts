@@ -357,7 +357,8 @@ order() {
 	unsat="-nounsat"
 	;;
       "POPC_SN2_unsat")
-	tail=(C23 C24 C25 C26 C26)
+	#tail=(C23 C24 C25 C26 C26)
+	tail=(C15 C17 C18 C19 C20 C21 C22 C23 C24 C25 C26 C27 C28 C29 C30 C31 C32 C33 C33)
 	resname=POPC
 	unsat="-unsat"
 	;;
