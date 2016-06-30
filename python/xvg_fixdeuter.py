@@ -24,18 +24,21 @@ unsat_filename = args.u
 unsat_atoms = args.a
 output_filename = args.o
 
-# read files
+# read file
 tail,comment=xvgio.read(filename)
-unsat,comment2=xvgio.read(unsat_filename)
 
 # fix numbering
 tail[:,0]=tail[:,0]+1
-unsat[:,0]=unsat[:,0]+1
 
-# merge saturated and unsaturated
-for atom in unsat_atoms:
-    index=int(atom)-2
-    tail[index,1]=unsat[index,1]
+if args.u:
+    # read file
+    unsat,comment2=xvgio.read(unsat_filename)
+    # fix numbering
+    unsat[:,0]=unsat[:,0]+1
+    # merge saturated and unsaturated
+    for atom in unsat_atoms:
+        index=int(atom)-2
+        tail[index,1]=unsat[index,1]
 
 # write file
 xvgio.write(output_filename,tail,comment)
