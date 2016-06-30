@@ -19,7 +19,8 @@ resnums2=args.r2
 if args.o:
     outfile=args.o
 else:
-    outfile='swap'
+    outfile='swap.gro'
+
 
 
 for resnum2 in resnums2:
@@ -38,5 +39,8 @@ for resnum2 in resnums2:
     
     # write file
     s=u.select_atoms("segid SYSTEM")
-    outfilename="{}_{}_to_{}.gro".format(outfile,str(resnum2), str(resnum1))
+    if len(args.r2) == 1:
+        outfilename=outfile
+    else:
+        outfilename="{}_{}_to_{}.{}".format(outfile.split('.')[0], str(resnum2), str(resnum1), outfile.split('.')[1])
     s.write(outfilename)
