@@ -14,5 +14,5 @@ In addition to distance the command outputs also distance z-component and the ab
 INSTALLATION:
 
 $ source /path/to/GMXRC
-$ cmake
+$ cmake ./ 
 $ make
