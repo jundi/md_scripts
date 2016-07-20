@@ -1,4 +1,4 @@
-This is a customized version of gmx distance program distributed with Gromacs (http://www.gromacs.org/). It can be used for calculating distance of individual molecules from some positon (for example center of mass of an atom group).
+This is a customized version of gmx distance program distributed with Gromacs (http://www.gromacs.org/). It can be used for calculating distance of individual molecules from some position (for example center of mass of an atom group).
 
 --------
 EXAMPLE:
