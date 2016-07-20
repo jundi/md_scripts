@@ -101,7 +101,7 @@ universe = MDAnalysis.Universe(coordinatefile)
 chirals = len(atomnames)/5
 
 # loop through all residues
-residues = universe.selectAtoms("resname " + resname).residues
+residues = universe.select_atoms("resname " + resname).residues
 for r in residues:
 
     handedness = [] # handedness of each chiral centers in residue
