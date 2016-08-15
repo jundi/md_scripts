@@ -1,39 +1,40 @@
 #!/bin/python
 #
-# Reads .xvg-plot and sets the y-coordinate of the last data point to zero.
-#
-
-import sys
-import numpy as np
-
-infile_name = sys.argv[1]
-outfile_name = '.'.join(infile_name.split('.')[:-1]) + '-trans.' + infile_name.split('.')[-1]
-
-new_lines = []
-x=[]
-y=[]
-
-with open(infile_name,'r') as infile:
-    for line in infile:
-        if line.startswith('#') or line.startswith('@'):
-           new_lines.append(line)
-        else:
-           data_point=line.split()
-           x.append(float(data_point[0]))
-           y.append(float(data_point[1]))
+"""
+Transfers the x-intercept (or y-intercept) of xvg-plot to a chosen data point.
+The default is the last point of dataset (index=-1).
+"""
+import argparse
+import numpy
+import xvgio
 
 
-x = np.array(x) 
-y = np.array(y) 
-y = y-y[-1]
-xy = np.vstack([x,y]).transpose()
-print(xy)
+### arguments
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('-f',help="Input file")
+parser.add_argument('-o',help="Output file")
+parser.add_argument('-a',help="Axis",type=int,default=1)
+parser.add_argument('-n',help="Index of point to be set to zero",type=int,default=-1)
 
-with open(outfile_name,'w') as outfile:
-    for line in new_lines:
-        outfile.write(line)
-    for row in xy:
-        x='%11e' % row[0]
-        y='%11e' % row[1]
-        line=str(x) + ' ' + str(y)
-        outfile.write(line + '\n')
+
+### parse arguments
+args = parser.parse_args()
+infile_name = args.f 
+if args.o:
+    outfile_name = args.o
+else:
+    outfile_name = '.'.join(infile_name.split('.')[:-1]) + '_trans.' + infile_name.split('.')[-1]
+axis = args.a
+index = args.n
+
+
+### read file
+data, comment = xvgio.read(infile_name)
+
+
+### edit data
+data[:,axis]=data[:,axis]-data[index,axis]
+
+
+### write
+xvgio.write(outfile_name, data, comment)
