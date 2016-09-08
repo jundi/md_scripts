@@ -8,6 +8,7 @@
 #
 
 import argparse
+import sys
 
 
 
@@ -16,14 +17,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-f', required=True, nargs='+')
 parser.add_argument('-o', required=False)
 parser.add_argument('-c', required=True)
+parser.add_argument('-s', required=False)
 args = parser.parse_args()
 
 infile_name = args.f
-if args.o:
-    outfile_suffix = args.o
+if args.s:
+    outfile_suffix = args.s
 else:
     outfile_suffix = '-column_'
 column_num = args.c
+if args.o:
+    if len(args.f) > 1:
+        sys.exit("Many input files and one output file?")
+    outfile_name=args.o
 
 
 
@@ -31,7 +37,8 @@ column_num = args.c
 # open files
 for f in infile_name:
     infile = open(f,'r')
-    outfile_name = '.'.join(f.split('.')[:-1]) + outfile_suffix + column_num + '.' + f.split('.')[-1]
+    if not args.o:
+        outfile_name = '.'.join(f.split('.')[:-1]) + outfile_suffix + column_num + '.' + f.split('.')[-1]
     outfile = open(outfile_name,'w')
 
     for line in infile:
