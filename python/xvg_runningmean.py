@@ -6,6 +6,7 @@
 import argparse
 import sys
 import os
+import xvgio
 import numpy as np
 
 
@@ -32,19 +33,9 @@ else:
 
 
 ### read file
-new_lines = []
-data = []
-with open(infile_name,'r') as infile:
-    for line in infile:
-        if line.startswith('#') or line.startswith('@'):
-            new_lines.append(line)
-        else:
-            points = [float(x) for x in line.split()]
-            data.append(points)
-
+data, comment = xvgio.read(infile_name)
 
 ### compute means
-data = np.array(data) 
 rows = data.shape[0]
 columns = data.shape[1]
 newdata = np.zeros([int(rows/width-1), columns])
@@ -55,12 +46,4 @@ for r in range(int(rows/width-1)):
 
 
 ### write
-with open(outfile_name,'w') as outfile:
-    for line in new_lines:
-        outfile.write(line)
-    for row in newdata:
-        line=''
-        for n in row:
-            line=line + str('%11e' % n) + ' '
-
-        outfile.write(line + '\n')
+xvgio.write(outfile_name, newdata, comment)
