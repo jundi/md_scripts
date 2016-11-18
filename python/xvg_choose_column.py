@@ -44,7 +44,6 @@ for f in infile_name:
     for line in infile:
         if not (line.startswith('#') or line.startswith('@') or line.startswith('&')):
             words=line.split()
-            print(words)
             outfile.write(words[0] + ' ' + words[int(column_num)] + '\n')
 
     # close files
